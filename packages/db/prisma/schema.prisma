@@ -175,3 +175,21 @@ enum ScoringPreset {
   aggressive
   gentle
 }
+
+// ─── Food Bot ───────────────────────────────────────────────────
+
+model FoodTrigger {
+  id          Int      @id @default(autoincrement())
+  chatId      BigInt   // 0 = global template
+  trigger     String
+  searchQuery String   // both the Unsplash search term and the display/group identity
+  createdAt   DateTime @default(now())
+
+  @@unique([trigger, chatId])
+}
+
+model FoodChatConfig {
+  chatId         BigInt   @id
+  responseChance Int      @default(100)   // now persisted — fixes the old in-memory-only bug
+  seededAt       DateTime @default(now())
+}
