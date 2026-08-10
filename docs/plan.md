@@ -3,20 +3,22 @@
 
 **Status:** Draft  
 **Depends on:** spec.md, requirements.md  
-**Approach:** Phases are ordered so each one produces a working, testable state. Do not start a phase until the previous one's checkboxes are complete. Bugs B1–B5 from requirements.md are called out inline where they are fixed.
+**Approach:** Phases are ordered so each one produces a working, testable state. Do not start a phase until the previous one's checkboxes are complete. Bugs B1–B5 from requirements.md are called out inline where they are fixed.  
+**Release targets:** each phase below is tagged `Target: vX.Y.Z`. See [releases.md](./releases.md) for what each release actually promises and why phases were grouped that way.
 
 ---
 
 ## Phase 0 — Monorepo scaffold
 *Goal: empty-but-wired repo where `pnpm install` works and packages can import each other.*
+**Target: v0.1.0**
 
 - [x] Create repo root with `pnpm-workspace.yaml` listing `apps/*` and `packages/*`
-- [x] Create `packages/db/` — copy `prisma/schema.prisma` from old repo, add `package.json` (`name: "@feyyus/db"`)
+- [x] Create `packages/db/` — copy `prisma/schema.prisma` from old repo, add `package.json` (`name: "@bisya/db"`)
 - [x] Add `prisma generate` and `prisma migrate` scripts to `packages/db/package.json`
-- [x] Create stub `packages/wallet/` with `package.json` (`name: "@feyyus/wallet"`) and empty `src/index.ts`
-- [x] Create stub `packages/scheduler/` with `package.json` (`name: "@feyyus/scheduler"`) and empty `src/index.ts`
-- [x] Create stub `packages/bot-kit/` with `package.json` (`name: "@feyyus/bot-kit"`) and empty `src/index.ts`
-- [x] Create `apps/music-bot/` with `package.json` listing `@feyyus/db`, `@feyyus/wallet`, `@feyyus/scheduler`, `@feyyus/bot-kit` as workspace dependencies
+- [x] Create stub `packages/wallet/` with `package.json` (`name: "@bisya/wallet"`) and empty `src/index.ts`
+- [x] Create stub `packages/scheduler/` with `package.json` (`name: "@bisya/scheduler"`) and empty `src/index.ts`
+- [x] Create stub `packages/bot-kit/` with `package.json` (`name: "@bisya/bot-kit"`) and empty `src/index.ts`
+- [x] Create `apps/music-bot/` with `package.json` listing `@bisya/db`, `@bisya/wallet`, `@bisya/scheduler`, `@bisya/bot-kit` as workspace dependencies
 - [x] Add root `tsconfig.base.json` with path aliases; extend it in each package and app
 - [x] Run `pnpm install` from root — confirm workspace links resolve
 - [x] Add `infra/docker-compose.yml` with `postgres` and `redis` services only (no bot yet)
@@ -26,6 +28,7 @@
 
 ## Phase 1 — Database schema migration
 *Goal: Prisma schema in `packages/db` is clean, migrated, and exports a working client.*
+**Target: v0.1.0**
 
 - [ ] Copy current `schema.prisma` into `packages/db/prisma/schema.prisma`
 - [ ] **Fix B3:** Remove `Chat.activeGameId`, `Chat.activeGame` relation, and `Game.activeInChat` opposite relation. Write migration.
@@ -35,7 +38,7 @@
 - [ ] **Enum rename:** Rename `GameStatus.COMPLETED` → `GameStatus.ENDED` for consistency with current service code that uses `'ENDED'` as a string literal in some places (or vice versa — pick one, fix both). Write migration.
 - [x] Validate the fresh Prisma schema with `prisma validate`
 - [ ] Connect the schema to a local Postgres instance when available and push it directly with `prisma db push`
-- [x] Run `pnpm --filter @feyyus/db prisma generate` — confirm client generates without errors
+- [x] Run `pnpm --filter @bisya/db prisma generate` — confirm client generates without errors
 - [x] Write and export Prisma singleton client from `packages/db/src/client.ts`:
   ```typescript
   import { PrismaClient } from '@prisma/client';
@@ -46,7 +49,8 @@
 ---
 
 ## Phase 2 — Wallet package
-*Goal: `@feyyus/wallet` is usable and correct before any bot code touches it.*
+*Goal: `@bisya/wallet` is usable and correct before any bot code touches it.*
+**Target: v0.3.0** (built early since it's isolated and low-risk; stays unwired — no payment handler calls it — until Phase 12)
 
 - [x] Implement `WalletService` in `packages/wallet/src/wallet.service.ts` per spec Section 5:
   - `credit(userId, amount, reason, idempotencyKey)` — Prisma `$transaction`: upsert `Wallet`, insert `WalletTransaction`, update `Wallet.balance`. Catch unique constraint error on `idempotencyKey` and return existing transaction.
@@ -64,7 +68,8 @@
 ---
 
 ## Phase 3 — Scheduler package
-*Goal: `@feyyus/scheduler` wraps BullMQ and can enqueue/cancel delayed jobs.*
+*Goal: `@bisya/scheduler` wraps BullMQ and can enqueue/cancel delayed jobs.*
+**Target: v0.2.0** — deferred out of v0.1.0. v0.1.0 ships with an in-memory `setTimeout`-based scheduler behind the same interface (B2's ctx-capture half is still fixed; only the Redis-durability half waits).
 
 - [ ] Add `bullmq` to `packages/scheduler/package.json` dependencies
 - [ ] Implement `SchedulerService` in `packages/scheduler/src/scheduler.service.ts`:
@@ -78,6 +83,7 @@
 
 ## Phase 4 — bot-kit package
 *Goal: shared middleware extracted and working independently of any specific bot.*
+**Target: v0.1.0**
 
 - [ ] Port `MemberService` from old codebase to `packages/bot-kit/src/member/member.service.ts` (it has no bot-specific imports, only Prisma — straightforward move)
 - [ ] Port `TextService` (i18n lookup) to `packages/bot-kit/src/text/text.service.ts`
@@ -94,9 +100,10 @@
 
 ## Phase 5 — Port music game repository
 *Goal: `MusicGameRepository` works against the updated schema in the new monorepo.*
+**Target: v0.1.0**
 
 - [ ] Copy `music-game.repository.ts` into `apps/music-bot/src/repository/`
-- [ ] Update all imports: `@prisma/client` types → `@feyyus/db`, Prisma client import → `@feyyus/db`
+- [ ] Update all imports: `@prisma/client` types → `@bisya/db`, Prisma client import → `@bisya/db`
 - [ ] **Fix B3 (repository side):** Remove any query that references `Chat.activeGameId` or uses the `activeGame` / `activeInChat` relation. Replace `getCurrentGameByChatId` with a query on `Game.status`:
   ```typescript
   async getCurrentGameByChatId(chatId: number) {
@@ -127,9 +134,10 @@
 
 ## Phase 6 — Port services to grammY-agnostic shape
 *Goal: game services have no Telegraf imports and pass `api` instead of `ctx` where scheduling is involved.*
+**Target: v0.1.0** (this phase's B2 fix is the ctx-removal half only — services take `chatId`/`api`, not a captured `ctx`. The scheduler behind them stays in-memory until v0.2.0.)
 
 - [ ] Copy `guess.service.ts` → `apps/music-bot/src/services/guess.service.ts`
-  - Update imports only (Prisma types from `@feyyus/db`, no Telegraf)
+  - Update imports only (Prisma types from `@bisya/db`, no Telegraf)
   - **Fix B1:** Change `round.createdAt` to `round.startedAt` in time-elapsed calculation. Handle `startedAt` being null (round not yet live) by returning `0` or early-exiting.
   - No other logic changes required.
 
@@ -165,6 +173,7 @@
 
 ## Phase 7 — ActionCodec port and length guard
 *Goal: ActionCodec works in grammY, B4 fixed.*
+**Target: v0.1.0**
 
 - [ ] Copy `action.codec.ts` → `apps/music-bot/src/codec/action.codec.ts`
 - [ ] **Fix B4:** Add byte-length guard to `encode()`:
@@ -184,6 +193,7 @@
 
 ## Phase 8 — BullMQ workers
 *Goal: hint and auto-advance fire from Redis jobs, not in-memory timers.*
+**Target: v0.2.0**
 
 - [ ] Add `bullmq` to `apps/music-bot/package.json`
 - [ ] Implement `apps/music-bot/src/workers/hint.worker.ts`:
@@ -203,6 +213,7 @@
 
 ## Phase 9 — grammY composers (feature modules)
 *Goal: all handlers ported to grammY syntax, wired into the bot.*
+**Target: v0.1.0** (skip registering BullMQ workers in 9.5 until v0.2.0 — wire the in-memory scheduler instead)
 
 ### 9.0 Context and container setup
 - [ ] Write `apps/music-bot/src/context.ts` with `BotContext = Context & SessionFlavor<SessionData>` and `SessionData = { selectedChatId?: number }`
@@ -238,7 +249,7 @@
 - [ ] Create `apps/music-bot/src/index.ts`:
   - Init bot: `new Bot<BotContext>(token)`
   - Register `session()` middleware
-  - Register `membershipSyncMiddleware` from `@feyyus/bot-kit`
+  - Register `membershipSyncMiddleware` from `@bisya/bot-kit`
   - Register `Router` for private/group split (from `@grammyjs/router`)
   - Register feature composers
   - Call `bot.api.setMyCommands()` with scoped command lists (spec Section 3.4)
@@ -252,6 +263,7 @@
 
 ## Phase 10 — Docker and deployment
 *Goal: `docker compose up` in infra/ starts the full stack.*
+**Target: v0.2.0** — v0.1.0 runs the bot locally/manually against `docker compose up postgres redis`; containerizing the bot process itself waits until it's worth the Dockerfile effort.
 
 - [ ] Write `apps/music-bot/Dockerfile` (multi-stage: pnpm install at root → build packages → copy to final image)
 - [ ] Add `music-bot` service to `infra/docker-compose.yml` per spec Section 11.1
@@ -263,6 +275,7 @@
 
 ## Phase 11 — End-to-end game flow validation
 *Goal: a full game can be played by real humans in a test group.*
+**Target: v0.1.0** — this phase *is* the v0.1.0 release gate (playing a real game with friends). The restart-mid-round / BullMQ-durability checkbox below belongs to the v0.2.0 gate instead; don't block v0.1.0 on it.
 
 - [ ] At least 2 test users submit audio tracks via private chat
 - [ ] Organizer opens `/music` → lobby panel → starts game
@@ -271,18 +284,19 @@
 - [ ] Hint fires automatically after `hintDelaySec` (confirm from Redis job, not setTimeout)
 - [ ] Organizer advances to next round manually
 - [ ] Game ends, leaderboard appears
-- [ ] Restart bot mid-round, confirm auto-advance still fires from BullMQ
+- [ ] Restart bot mid-round, confirm auto-advance still fires from BullMQ *(v0.2.0 gate, not v0.1.0 — see Phase 8)*
 - [ ] All bugs B1–B5 verified fixed:
-  - [ ] B1: Elapsed time in scoring uses `startedAt`, not `createdAt`
-  - [ ] B2: Hint fires after bot restart (not from in-memory timer)
-  - [ ] B3: No re-fetch loops in `GameLifecycleService.start()`
-  - [ ] B4: `ActionCodec.encode()` throws in test for >64 byte output
+  - [ ] B1: Elapsed time in scoring uses `startedAt`, not `createdAt` — v0.1.0 gate
+  - [ ] B2: Hint fires after bot restart (not from in-memory timer) — v0.2.0 gate; v0.1.0 only fixes the stale-`ctx` half
+  - [ ] B3: No re-fetch loops in `GameLifecycleService.start()` — v0.1.0 gate
+  - [ ] B4: `ActionCodec.encode()` throws in test for >64 byte output — v0.1.0 gate
   - [ ] B5: (Acknowledged, not behaviorally fixable — documented in requirements)
 
 ---
 
 ## Phase 12 — Wallet integration (after game is stable)
 *Do not start this phase until Phase 11 is complete and the bot is deployed.*
+**Target: v0.3.0**
 
 - [ ] Decide payment provider (Telegram Stars vs external)
 - [ ] Implement payment handler in `apps/music-bot/src/features/payment/`

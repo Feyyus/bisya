@@ -25,7 +25,7 @@ repo-root/
 └── turbo.json                  # (optional) Turborepo for build caching
 ```
 
-Package scope: `@feyyus/*` (or whatever short handle you settle on — pick once, stay consistent).
+Package scope: `@bisya/*` — the shared handle across all bots in this platform, not any single bot or person.
 
 Internal dependency graph:
 ```
@@ -64,8 +64,8 @@ No circular dependencies. `db` is the only package that touches Prisma directly;
 ```
 Bootstrap sequence:
   1. Load config (env vars, fail fast on missing)
-  2. Init Prisma client (from @feyyus/db)
-  3. Init BullMQ connection (from @feyyus/scheduler)
+  2. Init Prisma client (from @bisya/db)
+  3. Init BullMQ connection (from @bisya/scheduler)
   4. Build DI container (Inversify, same pattern as current container.ts)
   5. Register middleware stack on bot
   6. Register BullMQ workers (hint worker, advance worker)
@@ -212,12 +212,12 @@ model WalletTransaction {
 ### 4.2 Package exports
 
 ```typescript
-// @feyyus/db
+// @bisya/db
 export { PrismaClient, prisma } from './client'   // singleton client
 export * from '@prisma/client'                      // re-export all generated types
 ```
 
-All Prisma type imports in `music-bot` and `wallet` come from `@feyyus/db`, not directly from `@prisma/client`, so there is one generated client across the monorepo.
+All Prisma type imports in `music-bot` and `wallet` come from `@bisya/db`, not directly from `@prisma/client`, so there is one generated client across the monorepo.
 
 ---
 
@@ -226,7 +226,7 @@ All Prisma type imports in `music-bot` and `wallet` come from `@feyyus/db`, not 
 Thin domain layer over the `WalletTransaction` table. No HTTP server. Imported directly by bots as a package.
 
 ```typescript
-// @feyyus/wallet
+// @bisya/wallet
 export class WalletService {
   // Credit coins. Idempotent: duplicate idempotencyKey is a no-op (returns existing tx).
   async credit(userId: bigint, amount: number, reason: string, idempotencyKey: string): Promise<WalletTransaction>
@@ -253,7 +253,7 @@ Both `credit` and `debit` run inside a Prisma `$transaction` that updates `Walle
 BullMQ wrapper. Replaces `SchedulerService`'s in-memory `setTimeout` map with Redis-backed durable delayed jobs.
 
 ```typescript
-// @feyyus/scheduler
+// @bisya/scheduler
 export class SchedulerService {
   // Enqueue a delayed job. Idempotent by jobId: replaces existing job with same id.
   async scheduleOnce(jobId: string, dueAt: Date, queue: string, data: unknown): Promise<void>
