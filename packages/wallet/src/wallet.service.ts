@@ -1,4 +1,4 @@
-import { Prisma, prisma, WalletTransaction } from "@feyyus/db";
+import { Prisma, prisma, WalletTransaction } from "@bisya/db";
 
 type WalletTransactionClient = Parameters<
     Parameters<typeof prisma.$transaction>[0]

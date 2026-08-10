@@ -1,5 +1,5 @@
 {
-    "name": "@feyyus/wallet",
+    "name": "@bisya/wallet",
     "version": "0.0.0",
     "private": true,
     "type": "commonjs",
@@ -9,7 +9,7 @@
         "build": "tsc -b"
     },
     "dependencies": {
-        "@feyyus/db": "workspace:*"
+        "@bisya/db": "workspace:*"
     },
     "devDependencies": {
         "typescript": "^5.6.3"

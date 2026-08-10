@@ -1,5 +1,5 @@
 {
-  "name": "@feyyus/bot-kit",
+  "name": "@bisya/bot-kit",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
@@ -8,7 +8,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@feyyus/db": "workspace:*"
+    "@bisya/db": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

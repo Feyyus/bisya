@@ -18,16 +18,16 @@
         "rootDir": ".",
         "outDir": "dist",
         "paths": {
-            "@feyyus/db": [
+            "@bisya/db": [
                 "packages/db/src/index.ts"
             ],
-            "@feyyus/wallet": [
+            "@bisya/wallet": [
                 "packages/wallet/src/index.ts"
             ],
-            "@feyyus/scheduler": [
+            "@bisya/scheduler": [
                 "packages/scheduler/src/index.ts"
             ],
-            "@feyyus/bot-kit": [
+            "@bisya/bot-kit": [
                 "packages/bot-kit/src/index.ts"
             ]
         }
