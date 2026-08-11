@@ -30,7 +30,15 @@ if (socksAgent) {
 
 const bot = new Bot<BotContext>(token, {
   client: socksAgent
-    ? { baseFetchConfig: { agent: socksAgent, compress: true } }
+    ? {
+        baseFetchConfig: { agent: socksAgent, compress: true },
+        // grammY's default 500s timeout means a silently-dead tunnel
+        // connection (SSH's ServerAliveInterval is off by default, so it
+        // can't detect this either) just hangs forever with no error. A
+        // short timeout turns that into a fast, retryable failure instead.
+        // See docs/research/ssh-socks5-longpoll-hang.md.
+        timeoutSeconds: 30,
+      }
     : undefined,
 });
 const prisma = new PrismaClient();
@@ -135,11 +143,17 @@ bot.on("message:text", async (ctx) => {
         });
       } catch (error) {
         console.error("Failed to send photo, sending text fallback:", error);
-        await ctx.reply(`Found: 🍕 ${match.matchedWord}`);
+        await ctx.reply(
+          `Found 🍕 ${match.matchedWord}, but couldn't send the photo - try again in a bit!`
+        );
       }
     } else {
-      // Fallback to text reply if photo fetch failed
-      await ctx.reply(`Found: 🍕 ${match.matchedWord}`);
+      // Unsplash didn't respond - let the user know the bot recognized the
+      // word rather than just going quiet, since a bare "Found" reads the
+      // same whether Unsplash failed or nothing was even detected.
+      await ctx.reply(
+        `Found 🍕 ${match.matchedWord}, but couldn't reach Unsplash for a photo right now - try again in a bit!`
+      );
     }
   } catch (error) {
     console.error("Error in food trigger handler:", error);
@@ -172,6 +186,10 @@ async function main() {
 
     console.log("Calling bot.start()...");
     await bot.start({
+      // A shorter long-poll window (vs. the ~30-50s default) shrinks the
+      // window during which a proxied connection can go idle-and-die
+      // mid-poll. See docs/research/ssh-socks5-longpoll-hang.md.
+      timeout: 10,
       onStart: (info) => console.log(`Polling started: @${info.username}`),
     });
     console.log("Bot started successfully");
