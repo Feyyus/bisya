@@ -707,9 +707,9 @@ export class MusicGameService {
           incorrect: 0,
           totalPoints: 0,
         };
+        stats.totalPoints += guess.points;
         if (round.userId === guess.guessedId) {
           stats.correct++;
-          stats.totalPoints += guess.points;
         } else {
           stats.incorrect++;
         }

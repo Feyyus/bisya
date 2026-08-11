@@ -131,34 +131,18 @@ describe('MusicGameService: game ending and leaderboard', () => {
   });
 
   /**
-   * Real gap, not a fixed bug: `MusicGameService`'s private
-   * `calculateUserStats` only adds `guess.points` into a user's
-   * `totalPoints` inside the "guessed correctly" branch:
+   * Regression test for the fixed bug: `MusicGameService`'s private
+   * `calculateUserStats` used to only add `guess.points` into a user's
+   * `totalPoints` inside the "guessed correctly" branch, silently dropping
+   * the penalty from wrong guesses even though `GuessService`/
+   * `ClassicScoring` do compute and persist a real negative `points` value
+   * (-2 by default) on the `Guess` row for a wrong answer.
    *
-   * ```
-   * if (round.userId === guess.guessedId) {
-   *   stats.correct++;
-   *   stats.totalPoints += guess.points;
-   * } else {
-   *   stats.incorrect++;
-   * }
-   * ```
-   *
-   * `GuessService`/`ClassicScoring` do compute and persist a real negative
-   * `points` value (-2 by default) on the `Guess` row for a wrong answer -
-   * that part works. But the leaderboard/stats aggregation silently drops
-   * it: a wrong guess only increments `incorrect`, its penalty never
-   * reaches `totalPoints`. So "leaderboard calculation matches the actual
-   * guesses/scores recorded" (this ticket's acceptance criterion) does
-   * *not* hold whenever a player has at least one incorrect guess - their
-   * displayed total is higher than what's actually in the `Guess` table.
-   *
-   * This test pins down the actual (buggy) behavior rather than the
-   * intended one, so it'll fail loudly if someone changes
-   * `calculateUserStats` without also revisiting this test - flagging this
-   * here instead of silently asserting the mismatch as correct.
+   * `calculateUserStats` now sums `guess.points` across all guesses
+   * regardless of correctness, so the leaderboard total matches what's
+   * actually recorded in the `Guess` table.
    */
-  test('gap: a wrong guess is scored (negative points persisted) but silently excluded from the leaderboard total', async () => {
+  test('a wrong guess is scored (negative points persisted) and included in the leaderboard total', async () => {
     const { chatId, gameId, userA, userB, roundOfA, roundOfB } = await startTwoPlayerGame({
       a: 'Carol',
       b: 'Dave',
@@ -190,12 +174,11 @@ describe('MusicGameService: game ending and leaderboard', () => {
     assert.ok(leaderboardMessage);
     const text = String(leaderboardMessage!.args[1]);
 
-    // The leaderboard shows Carol (userA) at 0 points with one wrong guess
-    // tallied - not -2. This is the gap: the displayed total (0) doesn't
-    // match what's actually recorded in the Guess table (-2).
+    // The leaderboard now shows Carol (userA) at -2 points with one wrong
+    // guess tallied, matching what's actually recorded in the Guess table.
     assert.ok(
-      text.includes('Carol — 🏆 0 очков (🎯 0 угадано, ❌ 1 не угадано)'),
-      `leaderboard text did not match expected (buggy) shape:\n${text}`,
+      text.includes('Carol — 🏆 -2 очков (🎯 0 угадано, ❌ 1 не угадано)'),
+      `leaderboard text did not match expected shape:\n${text}`,
     );
   });
 });
