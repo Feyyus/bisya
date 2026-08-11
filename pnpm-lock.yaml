@@ -63,10 +63,16 @@ importers:
       '@bisya/wallet':
         specifier: workspace:*
         version: link:../../packages/wallet
+      '@grammyjs/router':
+        specifier: ^2.0.0
+        version: 2.0.0(grammy@1.45.1)
       grammy:
         specifier: ^1.30.0
         version: 1.45.1
     devDependencies:
+      tsx:
+        specifier: ^4.7.0
+        version: 4.23.12
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
@@ -280,6 +286,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@grammyjs/router@2.0.0':
+    resolution: {integrity: sha512-xJ3HRNj3mVojLtkFmV+GvKpOWOnS0CGdAIdvpaq+j+8dic1wM1OhOukaotkKzAWZ6bb9QyzUUgVFN6xfZDO5VA==}
+    engines: {node: ^12.20.0 || >=14.13.1}
+    peerDependencies:
+      grammy: ^1.0.0
 
   '@grammyjs/types@4.0.0':
     resolution: {integrity: sha512-Z8lDLTvOlo12e5Vnly/vQh3JC9ppaitS1dGZ3w068gNitOd/y8tTSiib+Xm38aBGbtYGmUZwOc6afYrLs2CSTg==}
@@ -708,6 +720,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@grammyjs/router@2.0.0(grammy@1.45.1)':
+    dependencies:
+      grammy: 1.45.1
 
   '@grammyjs/types@4.0.0': {}
 
