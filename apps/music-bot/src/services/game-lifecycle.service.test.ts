@@ -127,9 +127,10 @@ describe('GameLifecycleService', () => {
     });
 
     /**
-     * Real gap, newly found while writing this suite (not one of the
-     * known B1/B2/B3 bugs): `startGameFromLobby`'s round-shuffling loop
-     * writes each round's new `sequence` one row at a time -
+     * Regression test for a fixed bug (not one of the known B1/B2/B3 bugs,
+     * found while writing this suite): `startGameFromLobby`'s round-
+     * shuffling loop used to write each round's new `sequence` one row at
+     * a time -
      *
      * ```
      * for (let i = 0; i < shuffledRounds.length; i++) {
@@ -137,24 +138,26 @@ describe('GameLifecycleService', () => {
      * }
      * ```
      *
-     * - and whenever the shuffle actually reorders the rounds (as opposed
-     * to leaving them in their original order), an early iteration can try
-     * to write a `sequence` value that another round in the same game
-     * still holds (hasn't been updated yet in this same loop), tripping
+     * - and whenever the shuffle actually reordered the rounds (as opposed
+     * to leaving them in their original order), an early iteration could
+     * try to write a `sequence` value that another round in the same game
+     * still held (hadn't been updated yet in this same loop), tripping
      * `GameRound`'s `@@unique([gameId, sequence])` constraint mid-transaction.
-     * Since `shuffleArray` is a real Fisher-Yates shuffle, this isn't a
-     * corner case - for a 2-round game it happens on the ~50% of starts
-     * where the shuffle actually swaps the two rounds. `start()`'s
-     * try/catch swallows the resulting Postgres error into a plain
-     * `'ERROR'`, so a single player starting a single game with 2+ tracks
-     * can see `/music_start` fail for no reason discoverable from the bot's
-     * output, and has to just try again.
+     * Since `shuffleArray` is a real Fisher-Yates shuffle, this wasn't a
+     * corner case - for a 2-round game it happened on ~50% of starts where
+     * the shuffle actually swapped the two rounds.
+     *
+     * Fixed by having `startGameFromLobby` assign sequences in two passes
+     * inside the transaction: first offsetting every round's sequence
+     * outside the live 0..n-1 range, then assigning the real shuffled
+     * values - so no write ever targets a sequence another row is still
+     * holding.
      *
      * `Math.random` is stubbed here (see `withStubbedRandom`) to force a
      * swap deterministically for a 2-round game, rather than relying on
      * chance to reproduce it.
      */
-    test('gap: starting a 2-round game can fail with a unique-constraint error when the shuffle actually reorders rounds', async () => {
+    test('starting a 2-round game succeeds even when the shuffle actually reorders rounds', async () => {
       const chatId = uniqueId();
       const { gameId } = await seedLobbyWithTracks(prisma, chatId, [
         { id: uniqueId(), name: 'Alice' },
@@ -165,13 +168,16 @@ describe('GameLifecycleService', () => {
       // a 2-element array, guaranteeing a reordering.
       const result = await withStubbedRandom(0, () => lifecycle.start(chatId));
 
-      assert.equal(result, 'ERROR', 'currently reproduces the gap described above');
-      const stillStuck = await repository.getGameById(gameId);
-      assert.equal(
-        stillStuck?.status,
-        GameStatus.LOBBY,
-        'the game is left stuck in LOBBY rather than starting or cleanly failing',
+      assert.ok(
+        typeof result === 'object' && 'chatId' in result,
+        `expected success, got ${JSON.stringify(result)}`,
       );
+
+      const started = await repository.getGameById(gameId);
+      assert.equal(started?.status, GameStatus.ACTIVE);
+      assert.ok(started?.rounds.every((r) => r.phase === RoundPhase.LIVE));
+      const sequences = (started?.rounds ?? []).map((r) => r.sequence).sort((a, b) => a - b);
+      assert.deepEqual(sequences, [0, 1]);
     });
   });
 

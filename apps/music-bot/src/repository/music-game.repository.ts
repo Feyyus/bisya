@@ -291,7 +291,25 @@ export class MusicGameRepository {
 
     // Transaction: shuffle, flip rounds to LIVE, set game to ACTIVE
     const updatedGame = await this.prisma.$transaction(async (tx: TransactionClient) => {
-      // Update round sequence to shuffle, and flip each to LIVE (see B1:
+      // Two-phase sequence assignment: `GameRound` has a
+      // `@@unique([gameId, sequence])` constraint that Postgres checks
+      // immediately (not deferred), so writing each round's shuffled
+      // `sequence` one row at a time can transiently collide - an early
+      // write can target a sequence value another round in this same game
+      // still holds until its own turn in the loop. Phase 1 moves every
+      // round to a sequence far outside the live 0..n-1 range (so no row
+      // can collide with another row's *current* value); phase 2 then
+      // assigns the real shuffled sequence, which is now guaranteed free
+      // because phase 1 already vacated the whole 0..n-1 range.
+      const offset = shuffledRounds.length;
+      for (let i = 0; i < shuffledRounds.length; i++) {
+        await tx.gameRound.update({
+          where: { id: shuffledRounds[i]!.id },
+          data: { sequence: offset + i },
+        });
+      }
+
+      // Assign final sequence, and flip each to LIVE (see B1:
       // `setRoundLive` below is the other reliable place `startedAt` gets
       // set - this is the initial transition out of the lobby).
       for (let i = 0; i < shuffledRounds.length; i++) {

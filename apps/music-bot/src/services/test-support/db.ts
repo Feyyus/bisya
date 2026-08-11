@@ -178,18 +178,19 @@ export async function seedLobbyWithTracks(
  * `MusicGameRepository.shuffleArray`'s outcome deterministic from a test,
  * since it calls `Math.random()` directly with no injectable source.
  *
- * Exists because of a real bug this suite found in
- * `startGameFromLobby` (see `game-lifecycle.service.test.ts`'s
- * "gap: ..." test): its shuffle-then-flip-to-LIVE loop writes each round's
- * new `sequence` one row at a time, and whenever the shuffle actually
- * reorders rounds (as opposed to leaving them in their original order),
- * that loop can transiently try to write a `sequence` value another
- * not-yet-updated row in the same game still holds, tripping
- * `GameRound`'s `@@unique([gameId, sequence])` constraint. That failure is
- * unrelated to whatever a given test is actually about, so most fixture
- * setup here pins `Math.random` to a value that keeps `shuffleArray`'s
- * Fisher-Yates pass an identity permutation (no reordering, so no
- * collision) for the small (<=3-round) games this suite uses - see
+ * Originally added to work around a real bug in `startGameFromLobby` (see
+ * `game-lifecycle.service.test.ts`'s shuffle-collision regression test):
+ * its shuffle-then-flip-to-LIVE loop used to write each round's new
+ * `sequence` one row at a time, and whenever the shuffle actually reordered
+ * rounds (as opposed to leaving them in their original order), that loop
+ * could transiently try to write a `sequence` value another not-yet-updated
+ * row in the same game still held, tripping `GameRound`'s
+ * `@@unique([gameId, sequence])` constraint. That's now fixed
+ * (two-phase sequence assignment inside the transaction), but most fixture
+ * setup here still pins `Math.random` to a value that keeps `shuffleArray`'s
+ * Fisher-Yates pass an identity permutation (no reordering) for the small
+ * (<=3-round) games this suite uses, so shuffle order stays deterministic
+ * and unrelated to whatever a given test is actually about - see
  * `withIdentityShuffle`.
  */
 export async function withStubbedRandom<T>(value: number, fn: () => Promise<T>): Promise<T> {
