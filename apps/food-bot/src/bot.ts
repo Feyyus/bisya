@@ -36,24 +36,21 @@ bot.command("start", async (ctx) => {
 });
 
 // Group join handler - send deep link button to add bot to other groups
-bot.on("message", async (ctx) => {
-  if (ctx.message?.group_chat_created || ctx.message?.new_chat_members) {
-    // Deep link to add bot to other groups
-    const deepLink = "tg://resolve?domain=BisyaFoodBot";
+bot.on(["message:new_chat_members", "message:group_chat_created"], async (ctx) => {
+  const deepLink = "tg://resolve?domain=BisyaFoodBot";
 
-    await ctx.reply("Thanks for adding me!", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "Add to group",
-              url: deepLink,
-            },
-          ],
+  await ctx.reply("Thanks for adding me!", {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "Add to group",
+            url: deepLink,
+          },
         ],
-      },
-    });
-  }
+      ],
+    },
+  });
 });
 
 // Message handler for food trigger detection (ticket #13)
