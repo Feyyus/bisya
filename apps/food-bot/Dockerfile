@@ -11,7 +11,7 @@ COPY apps ./apps
 COPY packages ./packages
 
 # Install dependencies
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+RUN npm install -g pnpm && pnpm install
 
 # Build food-bot and its dependencies
 RUN pnpm build --filter @bisya/food-bot
@@ -31,7 +31,7 @@ COPY apps/food-bot/seed/food-triggers.csv ./seed/food-triggers.csv
 
 # Install runtime dependencies only (no devDependencies)
 RUN npm install -g pnpm && \
-    pnpm install --prod --frozen-lockfile
+    pnpm install --prod
 
 # Health check (optional - bot doesn't expose HTTP, but we can check if process is running)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
