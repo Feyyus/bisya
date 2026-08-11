@@ -3,7 +3,13 @@ services:
     image: postgres:17
     restart: always
     environment:
-      POSTGRES_DB: food_bot
+      # Database is named "bisya", not "food_bot" - it holds every bot's
+      # tables plus shared ones (User, Wallet), per CONTEXT.md's table-naming
+      # convention. POSTGRES_DB only seeds the DB on first init; the actual
+      # live database was renamed in place (food_bot -> bisya) once Music
+      # Bot needed to share it. New environments starting from scratch will
+      # correctly get "bisya" from this value.
+      POSTGRES_DB: bisya
       POSTGRES_USER: food_bot_user
       POSTGRES_PASSWORD: food_bot_password
     networks:
@@ -18,7 +24,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://food_bot_user:food_bot_password@db:5432/food_bot
+      DATABASE_URL: postgresql://food_bot_user:food_bot_password@db:5432/bisya
       # Telegram is blocked on the homelab's network; route API calls
       # through the existing SSH SOCKS5 tunnel to a Finland VPS.
       TELEGRAM_PROXY_HOST: host.docker.internal

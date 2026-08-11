@@ -1,0 +1,52 @@
+name: Deploy Music Bot
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'apps/music-bot/**'
+      - 'packages/db/**'
+      - 'packages/bot-kit/**'
+      - 'packages/scheduler/**'
+      - 'packages/wallet/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-music-bot.yml'
+
+jobs:
+  deploy:
+    # Runs directly on the homelab via a self-hosted runner, since it's on
+    # a private LAN with no public inbound access - the runner connects
+    # outbound to GitHub instead, so no SSH/SCP steps are needed at all.
+    runs-on: [self-hosted, homelab]
+
+    steps:
+      - name: 'Checkout repository'
+        uses: actions/checkout@v4
+
+      - name: 'Write .env'
+        run: echo "${{ secrets.MUSIC_BOT_DEPLOY_ENV }}" > /srv/deployments/prod-music-bot/.env
+
+      - name: 'Login to GitHub Registry'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: 'Feyyus'
+          password: ${{ secrets.REGISTRY_KEY }}
+
+      - name: 'Build & Push music-bot Image'
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./apps/music-bot/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/feyyus/prod-music-bot:latest
+
+      - name: 'Deploy'
+        run: |
+          cp apps/music-bot/docker-compose.prod.yml /srv/deployments/prod-music-bot/docker-compose.yml
+          cd /srv/deployments/prod-music-bot
+          docker compose -f docker-compose.yml down
+          docker compose -f docker-compose.yml pull
+          docker compose -f docker-compose.yml up -d

@@ -1,0 +1,28 @@
+services:
+  bot:
+    image: ghcr.io/feyyus/prod-music-bot:latest
+    env_file:
+      - .env
+    environment:
+      # Shares Food Bot's Postgres instance/database ("bisya", renamed from
+      # "food_bot" once Music Bot needed it too) rather than getting its own -
+      # User/Wallet are meant to be shared tables across every bot per
+      # CONTEXT.md's table-naming convention, so a second, disconnected
+      # database would defeat the point. Reached via food-bot-net (declared
+      # external below) using the actual container name, since "db" is only
+      # a resolvable alias within food-bot's own compose project.
+      DATABASE_URL: postgresql://food_bot_user:food_bot_password@prod-food-bot-db-1:5432/bisya
+      # Telegram is blocked on the homelab's network; route API calls
+      # through the existing SSH SOCKS5 tunnel to a Finland VPS.
+      TELEGRAM_PROXY_HOST: host.docker.internal
+      TELEGRAM_PROXY_PORT: "1080"
+    networks:
+      - food-bot-net
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  food-bot-net:
+    name: food-bot-net
+    external: true
