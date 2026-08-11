@@ -1,7 +1,8 @@
 import type { ITextService, MemberService } from '@bisya/bot-kit';
 import { GameStatus, RoundPhase, ScoringPreset, User } from '@bisya/db';
-import { Api, Context } from 'grammy';
+import { Api } from 'grammy';
 import type { InlineKeyboardButton } from 'grammy/types';
+import { BotContext } from '../context';
 import {
   GameConfigInput,
   GameWithData,
@@ -11,19 +12,6 @@ import {
 import { GameLifecycleService } from './game-lifecycle.service';
 import { GuessService } from './guess.service';
 import { RoundOrchestratorService } from './round-orchestrator.service';
-
-/**
- * TODO(BotContext): bschat-bot's `IBotContext` / `CommandContext` /
- * `CallbackQueryContext` were Telegraf types built on a custom
- * session-flavored context (`src/context/context.interface.ts`,
- * `src/types.ts`). This monorepo doesn't have an equivalent session-flavored
- * `BotContext` yet - a later ticket is expected to introduce one (grammY
- * session plugin + a shared flavor type). Until then this service takes the
- * plain grammY `Context`, which already covers everything used here
- * (`ctx.chat`, `ctx.from`, `ctx.api`, `ctx.reply`, `ctx.answerCallbackQuery`).
- * Reconcile this alias with the real `BotContext` once it exists.
- */
-type BotContext = Context;
 
 /**
  * TODO(GameConfig): bschat-bot's `GameConfig` was a zod schema
