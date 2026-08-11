@@ -1,7 +1,7 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import type { MemberService } from '@bisya/bot-kit';
-import { GameStatus } from '@bisya/db';
+import { MusicGameStatus } from '@bisya/db';
 import { SchedulerService } from '@bisya/scheduler';
 import { ActionCodec } from '../codec/action.codec.js';
 import { MusicGameService } from './music-game.service.js';
@@ -74,7 +74,7 @@ describe('MusicGameService: game ending and leaderboard', () => {
     assert.ok(roundOfA && roundOfB);
 
     // Fast, deterministic scoring bucket for every guess in these tests.
-    await prisma.gameRound.updateMany({
+    await prisma.musicGameRound.updateMany({
       where: { gameId: game.id },
       data: { startedAt: new Date(Date.now() - 5_000) },
     });
@@ -113,8 +113,8 @@ describe('MusicGameService: game ending and leaderboard', () => {
       roundNumber: 0,
     });
 
-    const sumA = await prisma.guess.aggregate({ where: { userId: BigInt(userA) }, _sum: { points: true } });
-    const sumB = await prisma.guess.aggregate({ where: { userId: BigInt(userB) }, _sum: { points: true } });
+    const sumA = await prisma.musicGuess.aggregate({ where: { userId: BigInt(userA) }, _sum: { points: true } });
+    const sumB = await prisma.musicGuess.aggregate({ where: { userId: BigInt(userB) }, _sum: { points: true } });
     assert.equal(sumA._sum.points, expectedPoints);
     assert.equal(sumB._sum.points, expectedPoints);
 
@@ -127,7 +127,7 @@ describe('MusicGameService: game ending and leaderboard', () => {
     assert.ok(text.includes(`Bob — 🏆 ${expectedPoints} очков`));
 
     const endedGame = await repository.getGameById(gameId);
-    assert.equal(endedGame?.status, GameStatus.ENDED);
+    assert.equal(endedGame?.status, MusicGameStatus.ENDED);
   });
 
   /**
@@ -136,11 +136,11 @@ describe('MusicGameService: game ending and leaderboard', () => {
    * `totalPoints` inside the "guessed correctly" branch, silently dropping
    * the penalty from wrong guesses even though `GuessService`/
    * `ClassicScoring` do compute and persist a real negative `points` value
-   * (-2 by default) on the `Guess` row for a wrong answer.
+   * (-2 by default) on the `MusicGuess` row for a wrong answer.
    *
    * `calculateUserStats` now sums `guess.points` across all guesses
    * regardless of correctness, so the leaderboard total matches what's
-   * actually recorded in the `Guess` table.
+   * actually recorded in the `MusicGuess` table.
    */
   test('a wrong guess is scored (negative points persisted) and included in the leaderboard total', async () => {
     const { chatId, gameId, userA, userB, roundOfA, roundOfB } = await startTwoPlayerGame({
@@ -163,7 +163,7 @@ describe('MusicGameService: game ending and leaderboard', () => {
     assert.equal((wrongGuess as { points: number }).points, -2);
 
     // Ground truth: A really does have a -2 point guess recorded.
-    const recordedSumForA = await prisma.guess.aggregate({
+    const recordedSumForA = await prisma.musicGuess.aggregate({
       where: { userId: BigInt(userA) },
       _sum: { points: true },
     });
@@ -175,7 +175,7 @@ describe('MusicGameService: game ending and leaderboard', () => {
     const text = String(leaderboardMessage!.args[1]);
 
     // The leaderboard now shows Carol (userA) at -2 points with one wrong
-    // guess tallied, matching what's actually recorded in the Guess table.
+    // guess tallied, matching what's actually recorded in the MusicGuess table.
     assert.ok(
       text.includes('Carol — 🏆 -2 очков (🎯 0 угадано, ❌ 1 не угадано)'),
       `leaderboard text did not match expected shape:\n${text}`,

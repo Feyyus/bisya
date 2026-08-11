@@ -1,6 +1,6 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { RoundPhase } from '@bisya/db';
+import { MusicRoundPhase } from '@bisya/db';
 import { SchedulerService } from '@bisya/scheduler';
 import { ActionCodec } from '../codec/action.codec.js';
 import { RoundOrchestratorService } from './round-orchestrator.service.js';
@@ -73,7 +73,7 @@ describe('RoundOrchestratorService', () => {
     // stale value so this test actually proves setRoundLive touches it,
     // rather than passing because the earlier transition already did.
     const stale = new Date(Date.now() - 60_000);
-    await prisma.gameRound.update({ where: { id: round.id }, data: { startedAt: stale } });
+    await prisma.musicGameRound.update({ where: { id: round.id }, data: { startedAt: stale } });
 
     await repository.setRoundLive(round.id);
 
@@ -83,7 +83,7 @@ describe('RoundOrchestratorService', () => {
       updated!.startedAt!.getTime() > stale.getTime(),
       'setRoundLive must refresh startedAt, not leave the stale value in place',
     );
-    assert.equal(updated?.phase, RoundPhase.LIVE);
+    assert.equal(updated?.phase, MusicRoundPhase.LIVE);
   });
 
   test('startRound sets startedAt on the round it plays and sends the audio to the right chat', async () => {
@@ -177,7 +177,7 @@ describe('RoundOrchestratorService', () => {
 
     const nextRound = await repository.getRoundBySequence(gameId, 1);
     assert.ok(nextRound);
-    assert.equal(nextRound.phase, RoundPhase.LIVE);
+    assert.equal(nextRound.phase, MusicRoundPhase.LIVE);
     assert.ok(nextRound.startedAt instanceof Date);
     assert.equal(nextRound.hintShownAt, null, "the new round's hint state must not inherit the previous round's");
     assert.equal(nextRound.guesses.length, 0);
@@ -189,7 +189,7 @@ describe('RoundOrchestratorService', () => {
     // LIVE. Documented here as existing/intended behavior, not asserted as
     // a defect.)
     const untouchedFirstRound = await repository.findRoundById(firstRound.id);
-    assert.equal(untouchedFirstRound?.phase, RoundPhase.LIVE);
+    assert.equal(untouchedFirstRound?.phase, MusicRoundPhase.LIVE);
     assert.ok(untouchedFirstRound?.hintShownAt instanceof Date);
   });
 });

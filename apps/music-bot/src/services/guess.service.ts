@@ -1,4 +1,4 @@
-import { GameStatus, RoundPhase } from '@bisya/db';
+import { MusicGameStatus, MusicRoundPhase } from '@bisya/db';
 import { MusicGameRepository } from '../repository/music-game.repository';
 import { ScoringStrategy, scoringByPreset } from './scoring';
 
@@ -16,7 +16,7 @@ import { ScoringStrategy, scoringByPreset } from './scoring';
  * in the schema (a round that's DRAFT has never gone live), so this guards
  * against `null` by scoring 0 elapsed time rather than crashing on
  * `null.getTime()`. In practice this branch shouldn't be reachable here -
- * guesses are only accepted on `RoundPhase.LIVE` rounds, and `setRoundLive`
+ * guesses are only accepted on `MusicRoundPhase.LIVE` rounds, and `setRoundLive`
  * is the only way a round becomes LIVE - but it's cheap insurance against
  * that invariant breaking elsewhere.
  */
@@ -42,13 +42,13 @@ export class GuessService {
     if (!round) return 'NO_ROUND';
 
     // Guard: only allow guesses on LIVE rounds
-    if (round.phase !== RoundPhase.LIVE) return 'ROUND_NOT_LIVE';
+    if (round.phase !== MusicRoundPhase.LIVE) return 'ROUND_NOT_LIVE';
 
     const game = await this.gameRepository.getCurrentGameByChatId(chatId);
     if (!game) return 'NO_GAME';
 
     // Guard: only allow guesses in ACTIVE games
-    if (game.status !== GameStatus.ACTIVE) return 'GAME_NOT_ACTIVE';
+    if (game.status !== MusicGameStatus.ACTIVE) return 'GAME_NOT_ACTIVE';
 
     const existingGuess = await this.gameRepository.findGuess(roundId, guessingUserId);
     if (existingGuess) return 'ALREADY_GUESSED';

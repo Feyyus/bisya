@@ -1,6 +1,6 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { GameStatus, RoundPhase } from '@bisya/db';
+import { MusicGameStatus, MusicRoundPhase } from '@bisya/db';
 import { GuessService } from './guess.service.js';
 import { GameLifecycleService } from './game-lifecycle.service.js';
 import { MusicGameRepository } from '../repository/music-game.repository.js';
@@ -49,7 +49,7 @@ describe('GuessService', () => {
   describe('time-elapsed scoring (relative to startedAt)', () => {
     test('a quick correct guess (<=30s elapsed) scores the fast-guess bonus', async () => {
       const { chatId, roundId, roundOwner, guesser } = await startSingleRoundGame();
-      await prisma.gameRound.update({
+      await prisma.musicGameRound.update({
         where: { id: roundId },
         data: { startedAt: new Date(Date.now() - 5_000) },
       });
@@ -74,7 +74,7 @@ describe('GuessService', () => {
 
     test('a slow correct guess (>120s elapsed) loses the fast-guess bonus', async () => {
       const { chatId, roundId, roundOwner, guesser } = await startSingleRoundGame();
-      await prisma.gameRound.update({
+      await prisma.musicGameRound.update({
         where: { id: roundId },
         data: { startedAt: new Date(Date.now() - 150_000) },
       });
@@ -110,7 +110,7 @@ describe('GuessService', () => {
      * guess on a round whose `startedAt` is null should score 0 elapsed
      * time rather than crash on `null.getTime()`. This shouldn't be
      * reachable through the normal flow (guesses are gated on
-     * `RoundPhase.LIVE`, and the only two places a round becomes LIVE -
+     * `MusicRoundPhase.LIVE`, and the only two places a round becomes LIVE -
      * `startGameFromLobby` and `setRoundLive` - both set `startedAt` in the
      * same write) - so this test forces the state directly via Prisma to
      * exercise the guard as insurance against that invariant breaking
@@ -118,7 +118,7 @@ describe('GuessService', () => {
      */
     test('a LIVE round with startedAt somehow still null does not crash and scores 0 elapsed time', async () => {
       const { chatId, roundId, roundOwner, guesser } = await startSingleRoundGame();
-      await prisma.gameRound.update({ where: { id: roundId }, data: { startedAt: null } });
+      await prisma.musicGameRound.update({ where: { id: roundId }, data: { startedAt: null } });
 
       const result = await guessService.processGuess({
         chatId,
@@ -143,7 +143,7 @@ describe('GuessService', () => {
     test('NO_ROUND for an unknown roundId', async () => {
       const result = await guessService.processGuess({
         chatId: 0,
-        // GameRound.id is a Postgres INT4, unlike the BigInt Chat/User ids
+        // MusicGameRound.id is a Postgres INT4, unlike the BigInt Chat/User ids
         // `uniqueId()` produces elsewhere in this suite - a comfortably
         // out-of-range but still INT4-valid id, guaranteed not to exist.
         roundId: 999_999_999,
@@ -159,7 +159,7 @@ describe('GuessService', () => {
       const game = await repository.getCurrentGameByChatId(chatId);
       const draftRound = game?.rounds[0];
       assert.ok(draftRound);
-      assert.equal(draftRound.phase, RoundPhase.DRAFT);
+      assert.equal(draftRound.phase, MusicRoundPhase.DRAFT);
 
       const result = await guessService.processGuess({
         chatId,
@@ -178,7 +178,7 @@ describe('GuessService', () => {
       // which would trip ROUND_NOT_LIVE first and never reach this branch)
       // - this state shouldn't occur via the normal service methods, it's
       // constructed directly to prove this specific guard fires.
-      await prisma.game.update({ where: { id: gameId }, data: { status: GameStatus.LOBBY } });
+      await prisma.musicGame.update({ where: { id: gameId }, data: { status: MusicGameStatus.LOBBY } });
 
       const result = await guessService.processGuess({ chatId, roundId, guessingUserId: guesser });
       assert.equal(result, 'GAME_NOT_ACTIVE');
@@ -205,7 +205,7 @@ describe('GuessService', () => {
       });
       assert.equal(second, 'ALREADY_GUESSED');
 
-      const guessRows = await prisma.guess.count({ where: { roundId, userId: BigInt(guesser) } });
+      const guessRows = await prisma.musicGuess.count({ where: { roundId, userId: BigInt(guesser) } });
       assert.equal(guessRows, 1);
     });
 
@@ -218,10 +218,10 @@ describe('GuessService', () => {
      * is, at the millisecond level, a double submission.
      *
      * What saves this from being a data-integrity bug: `createGuess` goes
-     * through `MusicGameRepository`'s `prisma.guess.upsert` keyed on the
-     * `Guess`'s `@@unique([roundId, userId])` constraint, so even when both
-     * calls "win" the race and neither sees `ALREADY_GUESSED`, Postgres
-     * still guarantees exactly one `Guess` row for that
+     * through `MusicGameRepository`'s `prisma.musicGuess.upsert` keyed on the
+     * `MusicGuess`'s `@@unique([roundId, userId])` constraint, so even when
+     * both calls "win" the race and neither sees `ALREADY_GUESSED`, Postgres
+     * still guarantees exactly one `MusicGuess` row for that
      * (round, user) pair - the second write updates the first row in place
      * rather than erroring or duplicating it. So the guard is racy, but the
      * invariant the acceptance criteria actually cares about (no duplicate
@@ -229,7 +229,7 @@ describe('GuessService', () => {
      * test documents both halves: the guard *can* be bypassed, and the
      * unique constraint *does* still hold.
      */
-    test('concurrent double-submit never produces two Guess rows, even though the ALREADY_GUESSED guard itself is racy', async () => {
+    test('concurrent double-submit never produces two MusicGuess rows, even though the ALREADY_GUESSED guard itself is racy', async () => {
       const { chatId, roundId, roundOwner, guesser } = await startSingleRoundGame();
 
       const results = await Promise.all([
@@ -246,7 +246,7 @@ describe('GuessService', () => {
         );
       }
 
-      const guessRows = await prisma.guess.count({ where: { roundId, userId: BigInt(guesser) } });
+      const guessRows = await prisma.musicGuess.count({ where: { roundId, userId: BigInt(guesser) } });
       assert.equal(guessRows, 1, 'the unique (roundId, userId) constraint must prevent a duplicate row');
     });
   });

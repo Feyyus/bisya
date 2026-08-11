@@ -1,4 +1,4 @@
-import { GameStatus } from '@bisya/db';
+import { MusicGameStatus } from '@bisya/db';
 import { GameConfigInput, MusicGameRepository } from '../repository/music-game.repository';
 
 /**
@@ -36,7 +36,7 @@ export class GameLifecycleService {
 
       // Find or create LOBBY game
       let game = await this.gameRepository.getCurrentGameByChatId(chatId);
-      if (!game || game.status !== GameStatus.LOBBY) {
+      if (!game || game.status !== MusicGameStatus.LOBBY) {
         game = await this.gameRepository.createEmptyLobby(chatId);
       }
       return { gameId: game.id, chatId: Number(game.chatId) };
@@ -50,7 +50,7 @@ export class GameLifecycleService {
    * Starts a game from LOBBY state.
    * Transitions DRAFT rounds to LIVE and sets game to ACTIVE.
    *
-   * B3 fix: `getCurrentGameByChatId` now queries `Game.status` directly (see
+   * B3 fix: `getCurrentGameByChatId` now queries `MusicGame.status` directly (see
    * `MusicGameRepository`), so it returns reliably and the old multi-attempt
    * re-fetch/direct-search/create fallback chain (plus its pile of debug
    * logging) that used to live here is gone. This is now a straight line:
@@ -63,20 +63,20 @@ export class GameLifecycleService {
     try {
       const activeGame = await this.gameRepository.getCurrentGameByChatId(chatId);
 
-      if (activeGame && activeGame.status === GameStatus.ACTIVE) {
+      if (activeGame && activeGame.status === MusicGameStatus.ACTIVE) {
         return 'ALREADY_ACTIVE';
       }
 
       const users = await this.gameRepository.getDraftSubmissionUsers(chatId);
       if (!users.length) {
-        if (!activeGame || activeGame.status !== GameStatus.LOBBY) {
+        if (!activeGame || activeGame.status !== MusicGameStatus.LOBBY) {
           return 'NO_LOBBY';
         }
         return 'NO_TRACKS';
       }
 
       let lobbyGame = activeGame;
-      if (!lobbyGame || lobbyGame.status !== GameStatus.LOBBY) {
+      if (!lobbyGame || lobbyGame.status !== MusicGameStatus.LOBBY) {
         lobbyGame = await this.gameRepository.createEmptyLobby(chatId);
       }
 
@@ -98,11 +98,11 @@ export class GameLifecycleService {
     try {
       const activeGame = await this.gameRepository.getCurrentGameByChatId(chatId);
 
-      if (activeGame && activeGame.status === GameStatus.ACTIVE) {
+      if (activeGame && activeGame.status === MusicGameStatus.ACTIVE) {
         return 'ALREADY_ACTIVE';
       }
 
-      if (activeGame && activeGame.status === GameStatus.LOBBY) {
+      if (activeGame && activeGame.status === MusicGameStatus.LOBBY) {
         const started = await this.gameRepository.startGameFromLobby(activeGame.id, config);
         return { chatId: Number(started.chatId) };
       }
@@ -111,7 +111,7 @@ export class GameLifecycleService {
       if (!users.length) return 'NO_TRACKS';
 
       let lobby = await this.gameRepository.getCurrentGameByChatId(chatId);
-      if (!lobby || lobby.status !== GameStatus.LOBBY) {
+      if (!lobby || lobby.status !== MusicGameStatus.LOBBY) {
         lobby = await this.gameRepository.createEmptyLobby(chatId);
       }
 

@@ -1,5 +1,5 @@
 import type { ITextService, MemberService } from '@bisya/bot-kit';
-import { GameStatus, RoundPhase, ScoringPreset, User } from '@bisya/db';
+import { MusicGameStatus, MusicRoundPhase, MusicScoringPreset, User } from '@bisya/db';
 import { Api } from 'grammy';
 import type { InlineKeyboardButton } from 'grammy/types';
 import { BotContext } from '../context';
@@ -30,7 +30,7 @@ const defaultGameConfig: MusicGameConfig = {
   advanceDelaySec: 60,
   allowSelfGuess: false,
   shuffle: true,
-  scoringPreset: ScoringPreset.classic,
+  scoringPreset: MusicScoringPreset.classic,
 };
 
 /**
@@ -428,7 +428,7 @@ export class MusicGameService {
 
     // Check if player has a DRAFT round
     const draftRound = game.rounds.find(
-      (round) => Number(round.userId) === userId && round.phase === RoundPhase.DRAFT,
+      (round) => Number(round.userId) === userId && round.phase === MusicRoundPhase.DRAFT,
     );
 
     if (!draftRound) {
@@ -674,13 +674,13 @@ export class MusicGameService {
     ].join('\n\n');
   }
 
-  private formatGameStatus(status: GameStatus): string {
+  private formatGameStatus(status: MusicGameStatus): string {
     switch (status) {
-      case GameStatus.ACTIVE:
+      case MusicGameStatus.ACTIVE:
         return 'Активная';
-      case GameStatus.LOBBY:
+      case MusicGameStatus.LOBBY:
         return 'В лобби';
-      case GameStatus.ENDED:
+      case MusicGameStatus.ENDED:
         return 'Завершена';
       default:
         return 'Неизвестно';
@@ -874,9 +874,9 @@ export class MusicGameService {
 • <code>COMPLETED</code> - раунд завершён
 
 <b>База данных:</b>
-• <code>Game</code> - игра (статус, настройки, чат)
-• <code>GameRound</code> - раунд (трек, игрок, фаза)
-• <code>Guess</code> - догадка (игрок, угаданный игрок, очки)
+• <code>MusicGame</code> - игра (статус, настройки, чат)
+• <code>MusicGameRound</code> - раунд (трек, игрок, фаза)
+• <code>MusicGuess</code> - догадка (игрок, угаданный игрок, очки)
 • <code>ChatMembership</code> - участники чата
 
 <b>Настройки игры:</b>

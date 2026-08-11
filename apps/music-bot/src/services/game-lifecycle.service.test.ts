@@ -1,6 +1,6 @@
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { GameStatus, RoundPhase } from '@bisya/db';
+import { MusicGameStatus, MusicRoundPhase } from '@bisya/db';
 import { GameLifecycleService } from './game-lifecycle.service.js';
 import { MusicGameRepository } from '../repository/music-game.repository.js';
 import {
@@ -46,19 +46,19 @@ describe('GameLifecycleService', () => {
       ]);
 
       const gameBefore = await repository.getGameById(gameId);
-      assert.equal(gameBefore?.status, GameStatus.LOBBY);
-      assert.ok(gameBefore?.rounds.every((r) => r.phase === RoundPhase.DRAFT));
+      assert.equal(gameBefore?.status, MusicGameStatus.LOBBY);
+      assert.ok(gameBefore?.rounds.every((r) => r.phase === MusicRoundPhase.DRAFT));
       assert.ok(gameBefore?.rounds.every((r) => r.startedAt === null));
 
       const result = await withIdentityShuffle(() => lifecycle.start(chatId));
       assert.ok(typeof result === 'object' && 'chatId' in result, `expected success, got ${JSON.stringify(result)}`);
 
       const gameAfter = await repository.getGameById(gameId);
-      assert.equal(gameAfter?.status, GameStatus.ACTIVE);
+      assert.equal(gameAfter?.status, MusicGameStatus.ACTIVE);
       assert.equal(gameAfter?.currentSequence, 0);
       assert.equal(gameAfter?.rounds.length, 2);
       for (const round of gameAfter?.rounds ?? []) {
-        assert.equal(round.phase, RoundPhase.LIVE);
+        assert.equal(round.phase, MusicRoundPhase.LIVE);
         assert.ok(round.startedAt instanceof Date, 'startedAt should be set on the LOBBY->ACTIVE transition');
       }
       // Sequences got shuffled but must still be a contiguous 0..n-1 range,
@@ -101,13 +101,13 @@ describe('GameLifecycleService', () => {
      * is no advisory lock or `UPDATE ... WHERE status = 'LOBBY'` guard
      * making this transition atomic against itself.
      *
-     * What *does* hold, and what this test asserts: no duplicate `Game`
+     * What *does* hold, and what this test asserts: no duplicate `MusicGame`
      * row is ever created for the chat - `start()` always operates on the
      * one existing LOBBY game rather than creating a second one, so the
      * failure mode is "transient error, safe to retry", not "duplicate
      * game/split-brain state".
      */
-    test('concurrent double-start never creates a duplicate Game row (gap: both calls can fail transiently, see comment)', async () => {
+    test('concurrent double-start never creates a duplicate MusicGame row (gap: both calls can fail transiently, see comment)', async () => {
       const chatId = uniqueId();
       await seedLobbyWithTracks(prisma, chatId, [
         { id: uniqueId(), name: 'Alice' },
@@ -123,7 +123,7 @@ describe('GameLifecycleService', () => {
       await withIdentityShuffle(() => Promise.all([lifecycle.start(chatId), lifecycle.start(chatId)]));
 
       const games = await repository.getGamesOfChat(chatId);
-      assert.equal(games.length, 1, 'exactly one Game row must exist for the chat, win or lose');
+      assert.equal(games.length, 1, 'exactly one MusicGame row must exist for the chat, win or lose');
     });
 
     /**
@@ -134,7 +134,7 @@ describe('GameLifecycleService', () => {
      *
      * ```
      * for (let i = 0; i < shuffledRounds.length; i++) {
-     *   await tx.gameRound.update({ where: { id: shuffledRounds[i].id }, data: { sequence: i, ... } });
+     *   await tx.musicGameRound.update({ where: { id: shuffledRounds[i].id }, data: { sequence: i, ... } });
      * }
      * ```
      *
@@ -142,7 +142,7 @@ describe('GameLifecycleService', () => {
      * to leaving them in their original order), an early iteration could
      * try to write a `sequence` value that another round in the same game
      * still held (hadn't been updated yet in this same loop), tripping
-     * `GameRound`'s `@@unique([gameId, sequence])` constraint mid-transaction.
+     * `MusicGameRound`'s `@@unique([gameId, sequence])` constraint mid-transaction.
      * Since `shuffleArray` is a real Fisher-Yates shuffle, this wasn't a
      * corner case - for a 2-round game it happened on ~50% of starts where
      * the shuffle actually swapped the two rounds.
@@ -174,8 +174,8 @@ describe('GameLifecycleService', () => {
       );
 
       const started = await repository.getGameById(gameId);
-      assert.equal(started?.status, GameStatus.ACTIVE);
-      assert.ok(started?.rounds.every((r) => r.phase === RoundPhase.LIVE));
+      assert.equal(started?.status, MusicGameStatus.ACTIVE);
+      assert.ok(started?.rounds.every((r) => r.phase === MusicRoundPhase.LIVE));
       const sequences = (started?.rounds ?? []).map((r) => r.sequence).sort((a, b) => a - b);
       assert.deepEqual(sequences, [0, 1]);
     });
@@ -197,8 +197,8 @@ describe('GameLifecycleService', () => {
       assert.equal(result, 'ENDED');
 
       const ended = await repository.getGameById(gameId);
-      assert.equal(ended?.status, GameStatus.ENDED);
-      assert.ok(ended?.rounds.every((r) => r.phase === RoundPhase.COMPLETED));
+      assert.equal(ended?.status, MusicGameStatus.ENDED);
+      assert.ok(ended?.rounds.every((r) => r.phase === MusicRoundPhase.COMPLETED));
       assert.ok(ended?.rounds.every((r) => r.endedAt instanceof Date));
     });
   });
