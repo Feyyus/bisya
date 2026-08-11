@@ -1,8 +1,67 @@
 import { Bot, Context, SessionFlavor } from "grammy";
 import { PrismaClient } from "@prisma/client";
 import { SocksProxyAgent } from "socks-proxy-agent";
+import * as https from "https";
 import { TriggerService } from "./services/trigger.service";
 import { UnsplashService } from "./services/unsplash.service";
+
+/**
+ * A minimal Fetch-API-compatible wrapper around Node's raw https.request,
+ * used instead of node-fetch v2 when proxying through a custom Agent.
+ *
+ * node-fetch v2's fetch() wrapper doesn't reliably propagate abort/timeout
+ * signals down into a custom agent's connect() (confirmed by reading
+ * socks-proxy-agent's source: the SocksClient.createConnection() call it
+ * awaits has no cancellation path at all), so a stalled SOCKS handshake
+ * just hangs forever regardless of any timeout set elsewhere. Telegraf,
+ * proven working in production through this exact same tunnel and agent,
+ * passes the agent straight to https.request() with no such wrapper - this
+ * mirrors that. See docs/research/ssh-socks5-longpoll-hang.md.
+ */
+function createHttpsFetch(agent: https.Agent): typeof fetch {
+  return (async (url: string, init?: RequestInit) => {
+    const { hostname, pathname, search } = new URL(url);
+    const method = init?.method ?? "GET";
+    const headers = (init?.headers as Record<string, string>) ?? {};
+    const body = init?.body as string | undefined;
+
+    return new Promise<Response>((resolve, reject) => {
+      const req = https.request(
+        {
+          agent,
+          hostname,
+          path: pathname + search,
+          method,
+          headers,
+          // Longer than the ~10s long-poll window requested from Telegram
+          // (bot.start({ timeout: 10 })), so a healthy empty poll never
+          // trips this - only a genuinely stalled connection does.
+          timeout: 25000,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => {
+            const responseBody = Buffer.concat(chunks);
+            resolve(
+              new Response(responseBody, {
+                status: res.statusCode,
+                headers: res.headers as Record<string, string>,
+              })
+            );
+          });
+        }
+      );
+
+      req.on("timeout", () => {
+        req.destroy(new Error("Request timed out after 25 seconds"));
+      });
+      req.on("error", reject);
+      if (body) req.write(body);
+      req.end();
+    });
+  }) as typeof fetch;
+}
 
 interface SessionData {
   // Placeholder for per-chat configuration
@@ -31,12 +90,12 @@ if (socksAgent) {
 const bot = new Bot<BotContext>(token, {
   client: socksAgent
     ? {
-        baseFetchConfig: { agent: socksAgent, compress: true },
-        // grammY's default 500s timeout means a silently-dead tunnel
-        // connection (SSH's ServerAliveInterval is off by default, so it
-        // can't detect this either) just hangs forever with no error. A
-        // short timeout turns that into a fast, retryable failure instead.
-        // See docs/research/ssh-socks5-longpoll-hang.md.
+        // node-fetch v2 (grammY's default) doesn't propagate cancellation
+        // into a custom agent's connect(), so a stalled SOCKS handshake
+        // hangs forever no matter what timeout is set elsewhere. A raw
+        // https.request-based fetch, matching what works in production
+        // for this exact tunnel via Telegraf, doesn't have that problem.
+        fetch: createHttpsFetch(socksAgent),
         timeoutSeconds: 30,
       }
     : undefined,
