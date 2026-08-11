@@ -15,5 +15,25 @@ services:
         ports:
             - "6379:6379"
 
+    food-bot:
+        build:
+            context: ..
+            dockerfile: ./apps/food-bot/Dockerfile
+        image: bisya-food-bot:latest
+        environment:
+            FOOD_BOT_TOKEN: ${FOOD_BOT_TOKEN}
+            UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY}
+            DATABASE_URL: postgresql://postgres:postgres@postgres:5432/music_guess_bot
+        depends_on:
+            postgres:
+                condition: service_started
+            redis:
+                condition: service_started
+        restart: always
+        logging:
+            options:
+                max-size: "10m"
+                max-file: "3"
+
 volumes:
     postgres_data:
