@@ -1,8 +1,22 @@
 # Changelog
 
-Format loosely follows [Keep a Changelog](https://keepachangelog.com/). One version number for the whole `music-bot` deployment — see [docs/releases.md](docs/releases.md) for what each version promises and the tagging process.
+Format loosely follows [Keep a Changelog](https://keepachangelog.com/). This monorepo hosts multiple bots (`@bisya/*`) with independent release tracks; entries are grouped by bot. See [docs/releases.md](docs/releases.md) for `music-bot`'s tagging process.
 
-## [Unreleased]
+## Food Bot
+
+### [1.0.0] - Live on the homelab
+
+First release. Passive listener only (no admin/mutation commands yet — deferred pending `bot-kit`'s permission middleware).
+
+- `/start` with a one-tap "add to group" deep link
+- Russian word-stem trigger detection (216-row seed template, per-chat overrides via `chatId=0` sentinel)
+- Unsplash photo replies with a "typing" indicator while fetching
+- Deployed via Docker Compose on the homelab, routed through an SSH SOCKS5 proxy (Telegram and Unsplash are both blocked from that network - see `docs/research/ssh-socks5-longpoll-hang.md`)
+- Push-to-deploy CI/CD via a self-hosted GitHub Actions runner on the homelab
+
+## Music Bot
+
+### [Unreleased]
 
 Working towards v0.1.0 — "playable in one chat" (see [docs/releases.md](docs/releases.md)).
 
@@ -13,6 +27,6 @@ Working towards v0.1.0 — "playable in one chat" (see [docs/releases.md](docs/r
 - Docker Compose for Postgres + Redis (bot itself not containerized yet)
 - `docs/` — moved `requirements.md`, `spec.md`, `plan.md` out of repo root, added `docs/releases.md`
 
-## [0.0.0] - Scaffold
+### [0.0.0] - Scaffold
 
 Pre-release. Repo exists, nothing runs yet.
