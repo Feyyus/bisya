@@ -91,6 +91,9 @@ importers:
       i18next-fs-backend:
         specifier: ^2.6.0
         version: 2.6.7
+      socks-proxy-agent:
+        specifier: ^8.0.4
+        version: 8.0.5
     devDependencies:
       '@types/node':
         specifier: ^22.10.1

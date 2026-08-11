@@ -5,3 +5,4 @@ export { membershipSyncMiddleware } from "./middleware/membership-sync";
 export { requirePermission } from "./middleware/permissions";
 export type { RequirePermissionOptions } from "./middleware/permissions";
 export { ADMIN_PERMISSION, hasPermission } from "./permissions/permission";
+export { buildTelegramProxyClientConfig } from "./proxy/telegram-proxy";

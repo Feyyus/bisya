@@ -1,5 +1,5 @@
 import { Router } from "@grammyjs/router";
-import { membershipSyncMiddleware } from "@bisya/bot-kit";
+import { buildTelegramProxyClientConfig, membershipSyncMiddleware } from "@bisya/bot-kit";
 import { Bot, Context, session } from "grammy";
 import { createContainer } from "./container";
 import { BotContext, SessionData } from "./context";
@@ -29,7 +29,13 @@ if (!token) {
     throw new Error("MUSIC_BOT_TOKEN environment variable is required");
 }
 
-const bot = new Bot<BotContext>(token);
+// Telegram is unreachable directly from the homelab network. When
+// TELEGRAM_PROXY_HOST is set, route API calls through an SSH SOCKS5 tunnel
+// instead - see @bisya/bot-kit's buildTelegramProxyClientConfig and
+// docs/research/ssh-socks5-longpoll-hang.md for why this exists.
+const bot = new Bot<BotContext>(token, {
+    client: buildTelegramProxyClientConfig(process.env.TELEGRAM_PROXY_HOST, process.env.TELEGRAM_PROXY_PORT),
+});
 const container = createContainer();
 
 // ---- Middleware stack (docs/spec.md 3.2: session -> membership sync -> router) ----
@@ -98,6 +104,10 @@ async function main(): Promise<void> {
     await registerCommands();
 
     await bot.start({
+        // A shorter long-poll window (vs. the ~30-50s default) shrinks the
+        // window during which a proxied connection can go idle-and-die
+        // mid-poll. See docs/research/ssh-socks5-longpoll-hang.md.
+        timeout: 10,
         onStart: (info) => console.log(`Polling started: @${info.username}`),
     });
 }
