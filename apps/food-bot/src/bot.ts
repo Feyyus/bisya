@@ -24,6 +24,12 @@ function createHttpsFetch(agent: https.Agent): typeof fetch {
     const method = init?.method ?? "GET";
     const headers = (init?.headers as Record<string, string>) ?? {};
     const body = init?.body as string | undefined;
+    const label = pathname.split("/").pop();
+    const t0 = Date.now();
+    const log = (event: string) =>
+      console.log(`[httpsFetch ${label}] +${Date.now() - t0}ms ${event}`);
+
+    log("dispatching request");
 
     return new Promise<Response>((resolve, reject) => {
       const req = https.request(
@@ -39,9 +45,11 @@ function createHttpsFetch(agent: https.Agent): typeof fetch {
           timeout: 25000,
         },
         (res) => {
+          log(`got response headers, status ${res.statusCode}`);
           const chunks: Buffer[] = [];
           res.on("data", (chunk) => chunks.push(chunk));
           res.on("end", () => {
+            log("response body complete");
             const responseBody = Buffer.concat(chunks);
             resolve(
               new Response(responseBody, {
@@ -53,10 +61,21 @@ function createHttpsFetch(agent: https.Agent): typeof fetch {
         }
       );
 
+      req.on("socket", (socket) => {
+        log("socket assigned to request");
+        socket.on("lookup", () => log("DNS lookup complete"));
+        socket.on("connect", () => log("TCP connected"));
+        socket.on("secureConnect", () => log("TLS handshake complete"));
+        socket.on("close", () => log("socket closed"));
+      });
       req.on("timeout", () => {
+        log("TIMED OUT after 25s");
         req.destroy(new Error("Request timed out after 25 seconds"));
       });
-      req.on("error", reject);
+      req.on("error", (err) => {
+        log(`ERROR: ${err.message}`);
+        reject(err);
+      });
       if (body) req.write(body);
       req.end();
     });

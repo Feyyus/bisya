@@ -1,4 +1,5 @@
 import axios from "axios";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
 /**
  * Unsplash photo data structure
@@ -16,6 +17,18 @@ interface UnsplashPhoto {
 
 const MAX_RETRIES = 2;
 const UNSPLASH_BASE_URL = "https://api.unsplash.com/photos/random";
+const REQUEST_TIMEOUT_MS = 15000;
+
+// api.unsplash.com is unreachable directly from the homelab network, same
+// as Telegram - route through the same SSH SOCKS5 tunnel when configured.
+// axios's own httpAgent/httpsAgent support (unlike grammY's default
+// node-fetch client) has no known abort-propagation issue, so this can use
+// axios directly rather than needing a raw https.request wrapper.
+const proxyHost = process.env.TELEGRAM_PROXY_HOST;
+const proxyPort = process.env.TELEGRAM_PROXY_PORT ?? "1080";
+const socksAgent = proxyHost
+  ? new SocksProxyAgent(`socks5://${proxyHost}:${proxyPort}`)
+  : undefined;
 
 /**
  * Fetches a fresh random photo from Unsplash for the given search query
@@ -37,6 +50,8 @@ async function fetchPhoto(
           query: searchQuery,
           client_id: accessKey,
         },
+        httpsAgent: socksAgent,
+        timeout: REQUEST_TIMEOUT_MS,
       });
 
       const photo = response.data;
