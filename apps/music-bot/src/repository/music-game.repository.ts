@@ -1,14 +1,14 @@
 import {
-  GameStatus,
-  Guess,
+  MusicGameStatus,
+  MusicGuess,
   Prisma,
-  RoundPhase,
-  ScoringPreset,
+  MusicRoundPhase,
+  MusicScoringPreset,
   User,
   prisma as defaultPrisma,
 } from '@bisya/db';
 
-const roundWithGuesses = Prisma.validator<Prisma.GameRoundInclude>()({
+const roundWithGuesses = Prisma.validator<Prisma.MusicGameRoundInclude>()({
   guesses: {
     include: {
       user: true,
@@ -18,17 +18,17 @@ const roundWithGuesses = Prisma.validator<Prisma.GameRoundInclude>()({
   game: true,
 });
 
-const gameWithData = Prisma.validator<Prisma.GameInclude>()({
+const gameWithData = Prisma.validator<Prisma.MusicGameInclude>()({
   rounds: {
     include: roundWithGuesses,
   },
 });
 
-export type GameWithData = Prisma.GameGetPayload<{
+export type GameWithData = Prisma.MusicGameGetPayload<{
   include: typeof gameWithData;
 }>;
 
-export type RoundWithGuesses = Prisma.GameRoundGetPayload<{
+export type RoundWithGuesses = Prisma.MusicGameRoundGetPayload<{
   include: typeof roundWithGuesses;
 }>;
 
@@ -54,21 +54,21 @@ export type GameConfigInput = Partial<{
   advanceDelaySec: number;
   allowSelfGuess: boolean;
   shuffle: boolean;
-  scoringPreset: ScoringPreset;
+  scoringPreset: MusicScoringPreset;
 }>;
 
 export class MusicGameRepository {
   constructor(private readonly prisma = defaultPrisma) {}
 
   async getGameById(id: number): Promise<GameWithData | null> {
-    return this.prisma.game.findUnique({
+    return this.prisma.musicGame.findUnique({
       where: { id },
       include: gameWithData,
     });
   }
 
   async findRoundById(id: number): Promise<RoundWithGuesses | null> {
-    return this.prisma.gameRound.findUnique({
+    return this.prisma.musicGameRound.findUnique({
       where: { id },
       include: roundWithGuesses,
     });
@@ -79,12 +79,15 @@ export class MusicGameRepository {
    * `activeGame`, which could point at a stale/finished game, and fell back
    * to a second manual re-fetch (plus a pile of debug logging) to work
    * around that unreliability. `Chat.activeGameId` no longer exists in the
-   * schema - this queries `Game.status` directly instead, which is the
+   * schema - this queries `MusicGame.status` directly instead, which is the
    * source of truth and needs no re-fetch.
    */
   async getCurrentGameByChatId(chatId: number): Promise<GameWithData | null> {
-    return this.prisma.game.findFirst({
-      where: { chatId: BigInt(chatId), status: { in: [GameStatus.LOBBY, GameStatus.ACTIVE] } },
+    return this.prisma.musicGame.findFirst({
+      where: {
+        chatId: BigInt(chatId),
+        status: { in: [MusicGameStatus.LOBBY, MusicGameStatus.ACTIVE] },
+      },
       orderBy: { createdAt: 'desc' },
       include: gameWithData,
     });
@@ -93,36 +96,36 @@ export class MusicGameRepository {
   async endGame(gameId: number): Promise<void> {
     await this.prisma.$transaction(async (tx: TransactionClient) => {
       // Set all LIVE rounds to COMPLETED
-      await tx.gameRound.updateMany({
+      await tx.musicGameRound.updateMany({
         where: {
           gameId: gameId,
-          phase: RoundPhase.LIVE,
+          phase: MusicRoundPhase.LIVE,
         },
         data: {
-          phase: RoundPhase.COMPLETED,
+          phase: MusicRoundPhase.COMPLETED,
           endedAt: new Date(),
         },
       });
 
       // Update game status
-      await tx.game.update({
+      await tx.musicGame.update({
         where: { id: gameId },
         data: {
-          status: GameStatus.ENDED,
+          status: MusicGameStatus.ENDED,
         },
       });
     });
   }
 
   async getRoundByDatabaseId(roundId: number): Promise<RoundWithGuesses | null> {
-    return this.prisma.gameRound.findUnique({
+    return this.prisma.musicGameRound.findUnique({
       where: { id: roundId },
       include: roundWithGuesses,
     });
   }
 
   async getRoundBySequence(gameId: number, gameSequence: number) {
-    return this.prisma.gameRound.findUnique({
+    return this.prisma.musicGameRound.findUnique({
       where: {
         gameId_sequence: {
           gameId: gameId,
@@ -137,9 +140,9 @@ export class MusicGameRepository {
    * Creates an empty LOBBY game for a chat
    */
   async createEmptyLobby(chatId: number): Promise<GameWithData> {
-    const game = await this.prisma.game.create({
+    const game = await this.prisma.musicGame.create({
       data: {
-        status: GameStatus.LOBBY,
+        status: MusicGameStatus.LOBBY,
         chatId: BigInt(chatId),
       },
       include: gameWithData,
@@ -160,21 +163,21 @@ export class MusicGameRepository {
       hintMessageId?: number;
     },
   ): Promise<void> {
-    const game = await this.prisma.game.findUnique({
+    const game = await this.prisma.musicGame.findUnique({
       where: { id: gameId },
-      include: { rounds: { where: { phase: RoundPhase.DRAFT } } },
+      include: { rounds: { where: { phase: MusicRoundPhase.DRAFT } } },
     });
 
     if (!game) {
       throw new Error('Game not found');
     }
 
-    if (game.status !== GameStatus.LOBBY) {
+    if (game.status !== MusicGameStatus.LOBBY) {
       throw new Error('Can only add tracks to LOBBY games');
     }
 
     // Check if user already has a DRAFT round
-    const existingRound = await this.prisma.gameRound.findUnique({
+    const existingRound = await this.prisma.musicGameRound.findUnique({
       where: {
         gameId_userId: {
           gameId,
@@ -185,7 +188,7 @@ export class MusicGameRepository {
 
     if (existingRound) {
       // Update existing DRAFT round
-      await this.prisma.gameRound.update({
+      await this.prisma.musicGameRound.update({
         where: { id: existingRound.id },
         data: {
           musicFileId: data.musicFileId,
@@ -200,7 +203,7 @@ export class MusicGameRepository {
           ? Math.max(...game.rounds.map((r: { sequence: number }) => r.sequence))
           : -1;
 
-      await this.prisma.gameRound.create({
+      await this.prisma.musicGameRound.create({
         data: {
           gameId,
           userId: BigInt(data.userId),
@@ -208,7 +211,7 @@ export class MusicGameRepository {
           musicFileId: data.musicFileId,
           hintChatId: data.hintChatId ? BigInt(data.hintChatId) : null,
           hintMessageId: data.hintMessageId ? BigInt(data.hintMessageId) : null,
-          phase: RoundPhase.DRAFT,
+          phase: MusicRoundPhase.DRAFT,
         },
       });
     }
@@ -218,25 +221,25 @@ export class MusicGameRepository {
    * Deletes a user's DRAFT round from a lobby game
    */
   async deleteDraftRound(gameId: number, userId: number): Promise<void> {
-    await this.prisma.gameRound.deleteMany({
+    await this.prisma.musicGameRound.deleteMany({
       where: {
         gameId,
         userId: BigInt(userId),
-        phase: RoundPhase.DRAFT,
+        phase: MusicRoundPhase.DRAFT,
       },
     });
 
     // Reindex remaining DRAFT rounds
-    const draftRounds = await this.prisma.gameRound.findMany({
+    const draftRounds = await this.prisma.musicGameRound.findMany({
       where: {
         gameId,
-        phase: RoundPhase.DRAFT,
+        phase: MusicRoundPhase.DRAFT,
       },
       orderBy: { createdAt: 'asc' },
     });
 
     for (let i = 0; i < draftRounds.length; i++) {
-      await this.prisma.gameRound.update({
+      await this.prisma.musicGameRound.update({
         where: { id: draftRounds[i]!.id },
         data: { sequence: i },
       });
@@ -253,9 +256,9 @@ export class MusicGameRepository {
           some: {
             game: {
               chatId: BigInt(chatId),
-              status: GameStatus.LOBBY,
+              status: MusicGameStatus.LOBBY,
             },
-            phase: RoundPhase.DRAFT,
+            phase: MusicRoundPhase.DRAFT,
           },
         },
       },
@@ -269,16 +272,16 @@ export class MusicGameRepository {
    * - Sets game status to ACTIVE
    */
   async startGameFromLobby(gameId: number, config?: GameConfigInput): Promise<GameWithData> {
-    const game = await this.prisma.game.findUnique({
+    const game = await this.prisma.musicGame.findUnique({
       where: { id: gameId },
-      include: { rounds: { where: { phase: RoundPhase.DRAFT } } },
+      include: { rounds: { where: { phase: MusicRoundPhase.DRAFT } } },
     });
 
     if (!game) {
       throw new Error('Game not found');
     }
 
-    if (game.status !== GameStatus.LOBBY) {
+    if (game.status !== MusicGameStatus.LOBBY) {
       throw new Error('Game is not in LOBBY state');
     }
 
@@ -291,7 +294,7 @@ export class MusicGameRepository {
 
     // Transaction: shuffle, flip rounds to LIVE, set game to ACTIVE
     const updatedGame = await this.prisma.$transaction(async (tx: TransactionClient) => {
-      // Two-phase sequence assignment: `GameRound` has a
+      // Two-phase sequence assignment: `MusicGameRound` has a
       // `@@unique([gameId, sequence])` constraint that Postgres checks
       // immediately (not deferred), so writing each round's shuffled
       // `sequence` one row at a time can transiently collide - an early
@@ -303,7 +306,7 @@ export class MusicGameRepository {
       // because phase 1 already vacated the whole 0..n-1 range.
       const offset = shuffledRounds.length;
       for (let i = 0; i < shuffledRounds.length; i++) {
-        await tx.gameRound.update({
+        await tx.musicGameRound.update({
           where: { id: shuffledRounds[i]!.id },
           data: { sequence: offset + i },
         });
@@ -313,24 +316,24 @@ export class MusicGameRepository {
       // `setRoundLive` below is the other reliable place `startedAt` gets
       // set - this is the initial transition out of the lobby).
       for (let i = 0; i < shuffledRounds.length; i++) {
-        await tx.gameRound.update({
+        await tx.musicGameRound.update({
           where: { id: shuffledRounds[i]!.id },
           data: {
             sequence: i,
-            phase: RoundPhase.LIVE,
+            phase: MusicRoundPhase.LIVE,
             startedAt: new Date(),
           },
         });
       }
 
       // Update game status and config
-      const updateData: Prisma.GameUpdateInput = {
-        status: GameStatus.ACTIVE,
+      const updateData: Prisma.MusicGameUpdateInput = {
+        status: MusicGameStatus.ACTIVE,
       };
       if (config) {
         Object.assign(updateData, config);
       }
-      const updated = await tx.game.update({
+      const updated = await tx.musicGame.update({
         where: { id: gameId },
         data: updateData,
         include: gameWithData,
@@ -355,7 +358,7 @@ export class MusicGameRepository {
   }
 
   async updateGameRound(gameId: number, currentSequence: number): Promise<GameWithData> {
-    return this.prisma.game.update({
+    return this.prisma.musicGame.update({
       where: { id: gameId },
       data: { currentSequence },
       include: gameWithData,
@@ -364,39 +367,40 @@ export class MusicGameRepository {
 
   async updateGameConfig(
     gameId: number,
-    data: { status?: GameStatus; config?: GameConfigInput },
+    data: { status?: MusicGameStatus; config?: GameConfigInput },
   ): Promise<void> {
-    const updateData: Prisma.GameUpdateInput = {};
+    const updateData: Prisma.MusicGameUpdateInput = {};
     if (data.status !== undefined) {
       updateData.status = data.status;
     }
     if (data.config !== undefined) {
       Object.assign(updateData, data.config);
     }
-    await this.prisma.game.update({
+    await this.prisma.musicGame.update({
       where: { id: gameId },
       data: updateData,
     });
   }
 
   async showHint(roundId: number): Promise<void> {
-    await this.prisma.gameRound.update({
+    await this.prisma.musicGameRound.update({
       where: { id: roundId },
       data: { hintShownAt: new Date() },
     });
   }
 
   /**
-   * B1 fix: nothing reliably set `GameRound.startedAt` once a round moved
-   * past its initial lobby-to-live transition (see `startGameFromLobby`),
-   * even though scoring depends on it for time-elapsed calculation. This is
-   * the one place callers advancing a round to LIVE should go through, so
-   * `startedAt` is always set at that transition.
+   * B1 fix: nothing reliably set `MusicGameRound.startedAt` once a round
+   * moved past its initial lobby-to-live transition (see
+   * `startGameFromLobby`), even though scoring depends on it for
+   * time-elapsed calculation. This is the one place callers advancing a
+   * round to LIVE should go through, so `startedAt` is always set at that
+   * transition.
    */
   async setRoundLive(roundId: number): Promise<void> {
-    await this.prisma.gameRound.update({
+    await this.prisma.musicGameRound.update({
       where: { id: roundId },
-      data: { phase: RoundPhase.LIVE, startedAt: new Date() },
+      data: { phase: MusicRoundPhase.LIVE, startedAt: new Date() },
     });
   }
 
@@ -407,8 +411,8 @@ export class MusicGameRepository {
     isCorrect: boolean;
     points: number;
     isLateGuess: boolean;
-  }): Promise<Guess> {
-    return this.prisma.guess.upsert({
+  }): Promise<MusicGuess> {
+    return this.prisma.musicGuess.upsert({
       where: {
         roundId_userId: {
           roundId: data.roundId,
@@ -428,8 +432,8 @@ export class MusicGameRepository {
     });
   }
 
-  async findGuess(roundId: number, userId: number): Promise<Guess | null> {
-    return this.prisma.guess.findUnique({
+  async findGuess(roundId: number, userId: number): Promise<MusicGuess | null> {
+    return this.prisma.musicGuess.findUnique({
       where: {
         roundId_userId: {
           roundId,
@@ -452,7 +456,7 @@ export class MusicGameRepository {
   }
 
   async getUsersNotGuessed(roundId: number): Promise<User[]> {
-    const round = await this.prisma.gameRound.findUnique({
+    const round = await this.prisma.musicGameRound.findUnique({
       where: { id: roundId },
       select: { gameId: true },
     });
@@ -482,14 +486,14 @@ export class MusicGameRepository {
   }
 
   async updateRoundMessageInfo(roundId: number, messageId: number) {
-    await this.prisma.gameRound.update({
+    await this.prisma.musicGameRound.update({
       where: { id: roundId },
       data: { infoMessageId: BigInt(messageId) },
     });
   }
 
   async getGamesOfChat(chatId: number): Promise<GameWithData[]> {
-    return this.prisma.game.findMany({
+    return this.prisma.musicGame.findMany({
       where: { chatId: BigInt(chatId) },
       orderBy: {
         createdAt: 'desc',
@@ -502,10 +506,10 @@ export class MusicGameRepository {
    * Get LIVE rounds count for a game
    */
   async getLiveRoundsCount(gameId: number): Promise<number> {
-    return this.prisma.gameRound.count({
+    return this.prisma.musicGameRound.count({
       where: {
         gameId,
-        phase: RoundPhase.LIVE,
+        phase: MusicRoundPhase.LIVE,
       },
     });
   }
@@ -514,11 +518,11 @@ export class MusicGameRepository {
    * Get current LIVE round by game sequence
    */
   async getLiveRoundBySequence(gameId: number, gameSequence: number) {
-    return this.prisma.gameRound.findFirst({
+    return this.prisma.musicGameRound.findFirst({
       where: {
         gameId,
         sequence: gameSequence,
-        phase: RoundPhase.LIVE,
+        phase: MusicRoundPhase.LIVE,
       },
       include: roundWithGuesses,
     });
