@@ -29,7 +29,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: 'KhoDis'
+          username: 'Feyyus'
           password: ${{ secrets.REGISTRY_KEY }}
 
       - name: 'Build & Push food-bot Image'
@@ -39,7 +39,7 @@ jobs:
           file: ./apps/food-bot/Dockerfile
           push: true
           tags: |
-            ghcr.io/khodis/prod-food-bot:latest
+            ghcr.io/feyyus/prod-food-bot:latest
 
       - name: 'Deploy'
         run: |
