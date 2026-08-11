@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_DB: food_bot
+      POSTGRES_USER: food_bot_user
+      POSTGRES_PASSWORD: food_bot_password
+    networks:
+      - food-bot-net
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  bot:
+    depends_on:
+      - db
+    image: ghcr.io/khodis/prod-food-bot:latest
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://food_bot_user:food_bot_password@db:5432/food_bot
+      # Telegram is blocked on the homelab's network; route API calls
+      # through the existing SSH SOCKS5 tunnel to a Finland VPS.
+      TELEGRAM_PROXY_HOST: host.docker.internal
+      TELEGRAM_PROXY_PORT: "1080"
+    networks:
+      - food-bot-net
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  food-bot-net:
+    name: food-bot-net
+    driver: bridge
+
+volumes:
+  pgdata:
