@@ -32,7 +32,13 @@ bot.use(async (ctx, next) => {
 bot.command("start", async (ctx) => {
   const message =
     "Welcome to Bisya Food Bot! Send a food-related word and I'll find a matching image.";
-  await ctx.reply(message);
+  const deepLink = "tg://resolve?domain=BisyaFoodBot&startgroup=true";
+
+  await ctx.reply(message, {
+    reply_markup: {
+      inline_keyboard: [[{ text: "Add to group", url: deepLink }]],
+    },
+  });
 });
 
 // Group join handler - send deep link button to add bot to other groups

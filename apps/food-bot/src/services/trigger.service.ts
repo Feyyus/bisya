@@ -35,9 +35,11 @@ function stemWord(word: string): string {
  * Extracts and stems words from a message
  */
 function extractAndStemWords(text: string): string[] {
+  // \w only matches [A-Za-z0-9_] in JS, so Cyrillic text needs Unicode
+  // property escapes (\p{L}) with the u flag to be tokenized at all.
   const words = text
     .toLowerCase()
-    .match(/\b\w+\b/g)
+    .match(/[\p{L}\p{N}_]+/gu)
     ?.map((word) => stemWord(word)) ?? [];
 
   return [...new Set(words)]; // Remove duplicates
