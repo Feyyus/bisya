@@ -1,0 +1,217 @@
+trigger,FoodCategory
+омлет,omelet breakfast
+яичница,omelet breakfast
+глазунья,omelet breakfast
+блины,pancakes
+блинчики,pancakes
+каша,porridge
+овсянка,porridge
+тост,buttered toast
+тосты,buttered toast
+гранола,granola bowl
+мюсли,granola bowl
+йогурт,yogurt with berries
+пицца,italian pizza
+пиццу,italian pizza
+пиццей,italian pizza
+пиццерия,italian pizza
+бургер,juicy burger
+чизбургер,juicy burger
+гамбургер,juicy burger
+бургерная,juicy burger
+хотдог,hot dog street food
+рамен,ramen
+удон,udon noodles
+фо-бо,pho soup
+том-ям,tom yum soup
+донбури,donburi rice bowl
+баоцзы,baozi buns
+вок,wok noodles
+суши,sushi set
+роллы,sushi set
+сашими,sushi set
+нигири,sushi set
+урамаки,sushi set
+гункан,sushi set
+пельмени,pelmeni
+борщ,borscht soup
+оливье,olivier salad
+винегрет,vinaigrette salad
+окрошка,okroshka soup
+солянка,solyanka soup
+уха,fish soup
+драники,belarus draniki
+плов,plov pilaf
+паста,italian pasta
+спагетти,italian pasta
+фетучини,italian pasta
+лазанья,italian pasta
+равиоли,italian pasta
+карбонара,pasta carbonara
+болоньезе,pasta bolognese
+стейк,beef steak
+антрекот,beef steak
+свинина,pork chop
+карбонад,pork chop
+ребрышки,pork chop
+баранина,grilled lamb
+курица,grilled chicken
+курочка,grilled chicken
+курица гриль,grilled chicken
+шашлык,grill bbq
+гриль,grill bbq
+барбекю,grill bbq
+лосось,grilled salmon
+тунец,tuna fillet
+треска,cod fish
+креветки,shrimp dish
+кальмары,grilled squid
+осьминог,cooked octopus
+устрицы,fresh oysters
+лобстер,lobster plate
+икра,black caviar
+фалафель,falafel plate
+хумус,hummus dip
+тофу,tofu dish
+сейтан,seitan vegan
+салат,fresh salad
+цезарь,fresh salad
+греческий,fresh salad
+капрезе,fresh salad
+суп,soup
+щи,soup
+харчо,soup
+крем-суп,soup
+бульон,soup
+торт,cake
+чизкейк,cake
+пирожное,cake
+тирамису,cake
+эклер,cake
+маффин,muffin dessert
+кекс,muffin dessert
+пончик,glazed donut
+мороженое,ice cream
+шоколад,chocolate
+конфеты,chocolate
+трюфель,chocolate
+какао,chocolate
+круассан,croissant pastry
+пирог,fruit pie
+пирожок,fruit pie
+хлеб,fresh bread
+батон,fresh bread
+багет,fresh bread
+лаваш,fresh bread
+булочка,fresh bread
+яблоко,apple
+банан,banana
+ананас,pineapple
+киви,fresh fruit
+виноград,grape
+помидор,tomato
+огурец,fresh vegetables
+морковь,fresh vegetables
+брокколи,fresh vegetables
+кабачок,fresh vegetables
+баклажан,fresh vegetables
+авокадо,fresh vegetables
+сыр,cheese
+моцарелла,cheese
+чеддер,cheese
+пармезан,cheese
+фета,cheese
+рикотта,cheese
+брынза,cheese
+смузи,fruit smoothie
+лимонад,lemonade drink
+милкшейк,milkshake
+фреш,fresh juice
+морс,fresh juice
+компот,fresh juice
+кофе,coffee
+капучино,coffee
+латте,coffee
+эспрессо,coffee
+мокка,coffee
+чай,coffee
+американо,coffee
+вино,wine
+пиво,beer
+виски,glass of whiskey
+ром,rum cocktail
+джин,gin tonic
+шампанское,champagne celebration
+коньяк,glass of cognac
+водка,vodka
+шаурма,shawarma
+шаверма,shawarma
+шаурму,shawarma
+шаверма,shawarma
+шаурмы,shawarma
+шаурмочка,shawarma
+шавермочка,shawarma
+doner,shawarma
+донер,shawarma
+донер кебаб,shawarma
+донер-кебаб,shawarma
+кебаб,shawarma
+фо,pho soup
+мясо,grill bbq
+кимчи,kimchi
+клубника,strawberry
+манго,mango
+мёд,honey
+мед,honey
+морковный,carrot juice
+абсент,absinthe
+квас,kvass
+гранат,pomegranate
+чай,tea
+пуэр,tea
+улун,tea
+каркаде,tea
+мандарин,orange fruit
+апельсин,orange fruit
+самса,samsa
+чебурек,cheburek
+вареники,dumplings
+чеснок,garlic
+redbull,red bull
+рэдбулл,red bull
+редбулл,red bull
+рэдбул,red bull
+редбул,red bull
+обезьяна,monkey
+бибизяна,monkey
+абизяна,monkey
+лук,onion
+рыба,cooked fish
+котлета,cutlet
+пюре,mashed potato
+кетчуп,ketchup
+гуляш,goulash
+гуляшик,goulash
+пюрешка,mashed potato
+тортик,cake
+персик,peach
+редис,radish
+редиска,radish
+вишня,cherry
+черешня,cherry
+печенье,cookie
+печеньки,cookie
+манты,dumplings
+хинкали,dumplings
+панкейк,pancakes
+ягода,berry
+чак-чак,loukoumades
+чакчак,loukoumades
+картошка,potato
+картофель,potato
+картофан,potato
+картошечка,potato
+фри,french fries
+лимон,lemon
+лайм,lime
+шарлотка,charlotte
