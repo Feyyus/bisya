@@ -14,27 +14,11 @@ interface UnsplashPhoto {
   };
 }
 
-/**
- * Cached photo entry with expiration
- */
-interface CacheEntry {
-  url: string;
-  author?: string;
-  expiresAt: number;
-}
-
-/**
- * In-memory cache for photo URLs (1-hour TTL)
- */
-const photoCache = new Map<string, CacheEntry>();
-
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAX_RETRIES = 2;
 const UNSPLASH_BASE_URL = "https://api.unsplash.com/photos/random";
 
 /**
- * Fetches a random photo from Unsplash for the given search query
- * Implements caching and retry logic
+ * Fetches a fresh random photo from Unsplash for the given search query
  */
 async function fetchPhoto(
   searchQuery: string
@@ -43,18 +27,6 @@ async function fetchPhoto(
   if (!accessKey) {
     console.error("UNSPLASH_ACCESS_KEY environment variable is not set");
     return null;
-  }
-
-  // Check cache first
-  const cached = photoCache.get(searchQuery);
-  if (cached && cached.expiresAt > Date.now()) {
-    console.log(`Using cached photo for: ${searchQuery}`);
-    return { url: cached.url, author: cached.author };
-  }
-
-  // Remove expired cache entry
-  if (cached) {
-    photoCache.delete(searchQuery);
   }
 
   // Fetch from API with retries
@@ -76,13 +48,6 @@ async function fetchPhoto(
 
       const photoUrl = photo.urls.regular || photo.urls.small;
       const author = photo.user?.name || photo.user?.username;
-
-      // Cache the result
-      photoCache.set(searchQuery, {
-        url: photoUrl,
-        author,
-        expiresAt: Date.now() + CACHE_TTL_MS,
-      });
 
       return { url: photoUrl, author };
     } catch (err) {
@@ -132,20 +97,7 @@ function generateCaption(trigger: string, author?: string): string {
   return caption;
 }
 
-/**
- * Clears expired cache entries
- */
-function clearExpiredCache(): void {
-  const now = Date.now();
-  for (const [key, entry] of photoCache.entries()) {
-    if (entry.expiresAt <= now) {
-      photoCache.delete(key);
-    }
-  }
-}
-
 export const UnsplashService = {
   fetchPhoto,
   generateCaption,
-  clearExpiredCache,
 };

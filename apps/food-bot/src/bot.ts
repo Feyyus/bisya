@@ -136,11 +136,6 @@ async function main() {
       // Continue without triggers rather than failing to start
     }
 
-    // Set up periodic cache cleanup
-    setInterval(() => {
-      UnsplashService.clearExpiredCache();
-    }, 30 * 60 * 1000); // Every 30 minutes
-
     await bot.start();
     console.log("Bot started successfully");
   } catch (error) {
