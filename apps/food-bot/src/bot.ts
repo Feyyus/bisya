@@ -106,8 +106,21 @@ bot.on("message:text", async (ctx) => {
       return; // Probabilistic decision to not respond
     }
 
-    // Try to fetch a photo from Unsplash
-    const photoData = await UnsplashService.fetchPhoto(match.searchQuery);
+    // Telegram only shows the "typing" indicator for ~5s per call, so keep
+    // re-sending it while the Unsplash fetch is in flight.
+    await ctx.replyWithChatAction("typing");
+    const chatActionInterval = setInterval(() => {
+      ctx.replyWithChatAction("typing").catch(() => {
+        // Best-effort - a failed chat action shouldn't interrupt the reply.
+      });
+    }, 4000);
+
+    let photoData: Awaited<ReturnType<typeof UnsplashService.fetchPhoto>>;
+    try {
+      photoData = await UnsplashService.fetchPhoto(match.searchQuery);
+    } finally {
+      clearInterval(chatActionInterval);
+    }
 
     if (photoData) {
       // Send photo with caption
