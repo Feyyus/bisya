@@ -1,4 +1,4 @@
-import { Bot, Context, SessionFlavor } from "grammy";
+import { Bot, BotConfig, Context, SessionFlavor } from "grammy";
 import { PrismaClient } from "@prisma/client";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import * as https from "https";
@@ -24,12 +24,6 @@ function createHttpsFetch(agent: https.Agent): typeof fetch {
     const method = init?.method ?? "GET";
     const headers = (init?.headers as Record<string, string>) ?? {};
     const body = init?.body as string | undefined;
-    const label = pathname.split("/").pop();
-    const t0 = Date.now();
-    const log = (event: string) =>
-      console.log(`[httpsFetch ${label}] +${Date.now() - t0}ms ${event}`);
-
-    log("dispatching request");
 
     return new Promise<Response>((resolve, reject) => {
       const req = https.request(
@@ -45,11 +39,9 @@ function createHttpsFetch(agent: https.Agent): typeof fetch {
           timeout: 25000,
         },
         (res) => {
-          log(`got response headers, status ${res.statusCode}`);
           const chunks: Buffer[] = [];
           res.on("data", (chunk) => chunks.push(chunk));
           res.on("end", () => {
-            log("response body complete");
             const responseBody = Buffer.concat(chunks);
             resolve(
               new Response(responseBody, {
@@ -61,21 +53,10 @@ function createHttpsFetch(agent: https.Agent): typeof fetch {
         }
       );
 
-      req.on("socket", (socket) => {
-        log("socket assigned to request");
-        socket.on("lookup", () => log("DNS lookup complete"));
-        socket.on("connect", () => log("TCP connected"));
-        socket.on("secureConnect", () => log("TLS handshake complete"));
-        socket.on("close", () => log("socket closed"));
-      });
       req.on("timeout", () => {
-        log("TIMED OUT after 25s");
         req.destroy(new Error("Request timed out after 25 seconds"));
       });
-      req.on("error", (err) => {
-        log(`ERROR: ${err.message}`);
-        reject(err);
-      });
+      req.on("error", reject);
       if (body) req.write(body);
       req.end();
     });
@@ -99,26 +80,23 @@ if (!token) {
 // instead, per grammY's documented proxy setup (grammy.dev/advanced/proxy).
 const proxyHost = process.env.TELEGRAM_PROXY_HOST;
 const proxyPort = process.env.TELEGRAM_PROXY_PORT ?? "1080";
-const socksAgent = proxyHost
-  ? new SocksProxyAgent(`socks5://${proxyHost}:${proxyPort}`)
-  : undefined;
-if (socksAgent) {
+
+let clientOptions: BotConfig<BotContext>["client"];
+if (proxyHost) {
   console.log(`Routing Telegram API calls through SOCKS5 proxy at ${proxyHost}:${proxyPort}`);
+  const socksAgent = new SocksProxyAgent(`socks5://${proxyHost}:${proxyPort}`);
+  clientOptions = {
+    // node-fetch v2 (grammY's default) doesn't propagate cancellation
+    // into a custom agent's connect(), so a stalled SOCKS handshake
+    // hangs forever no matter what timeout is set elsewhere. A raw
+    // https.request-based fetch, matching what works in production
+    // for this exact tunnel via Telegraf, doesn't have that problem.
+    fetch: createHttpsFetch(socksAgent),
+    timeoutSeconds: 30,
+  };
 }
 
-const bot = new Bot<BotContext>(token, {
-  client: socksAgent
-    ? {
-        // node-fetch v2 (grammY's default) doesn't propagate cancellation
-        // into a custom agent's connect(), so a stalled SOCKS handshake
-        // hangs forever no matter what timeout is set elsewhere. A raw
-        // https.request-based fetch, matching what works in production
-        // for this exact tunnel via Telegraf, doesn't have that problem.
-        fetch: createHttpsFetch(socksAgent),
-        timeoutSeconds: 30,
-      }
-    : undefined,
-});
+const bot = new Bot<BotContext>(token, { client: clientOptions });
 const prisma = new PrismaClient();
 
 // Cache for global food triggers (loaded at startup)
@@ -258,11 +236,6 @@ async function main() {
       // Continue without triggers rather than failing to start
     }
 
-    console.log("Calling getMe() to validate connectivity...");
-    const me = await bot.api.getMe();
-    console.log(`getMe() succeeded: @${me.username}`);
-
-    console.log("Calling bot.start()...");
     await bot.start({
       // A shorter long-poll window (vs. the ~30-50s default) shrinks the
       // window during which a proxied connection can go idle-and-die
@@ -270,7 +243,6 @@ async function main() {
       timeout: 10,
       onStart: (info) => console.log(`Polling started: @${info.username}`),
     });
-    console.log("Bot started successfully");
   } catch (error) {
     console.error("Failed to start bot:", error);
     process.exit(1);
