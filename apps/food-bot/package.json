@@ -3,10 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "type": "commonjs",
+  "main": "./src/bot.ts",
   "scripts": {
+    "dev": "tsx watch src/bot.ts",
+    "start": "node dist/bot.js",
+    "build": "tsc -b",
     "seed:import": "tsx seed/import-triggers.ts"
   },
   "dependencies": {
+    "grammy": "^1.30.0",
+    "@bisya/db": "workspace:*",
+    "@bisya/bot-kit": "workspace:*",
     "@prisma/client": "^6.5.0"
   },
   "devDependencies": {

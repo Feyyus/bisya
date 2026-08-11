@@ -10,6 +10,6 @@
       "@bisya/bot-kit": ["../../packages/bot-kit/src/index.ts"]
     }
   },
-  "include": ["seed/**/*"],
+  "include": ["src/**/*", "seed/**/*"],
   "exclude": ["node_modules", "dist"]
 }
