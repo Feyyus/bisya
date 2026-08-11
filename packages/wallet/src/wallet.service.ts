@@ -1,8 +1,6 @@
 import { Prisma, prisma, WalletTransaction } from "@bisya/db";
 
-type WalletTransactionClient = Parameters<
-    Parameters<typeof prisma.$transaction>[0]
->[0];
+type WalletTransactionClient = Prisma.TransactionClient;
 
 export class InsufficientFundsError extends Error {
     constructor(message = "Insufficient funds") {
