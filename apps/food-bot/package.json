@@ -11,6 +11,7 @@
     "seed:import": "tsx seed/import-triggers.ts"
   },
   "dependencies": {
+    "axios": "^1.6.0",
     "grammy": "^1.30.0",
     "@bisya/db": "workspace:*",
     "@bisya/bot-kit": "workspace:*",

@@ -1,3 +1,5 @@
+import axios from "axios";
+
 /**
  * Unsplash photo data structure
  */
@@ -58,32 +60,14 @@ async function fetchPhoto(
   // Fetch from API with retries
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const url = new URL(UNSPLASH_BASE_URL);
-      url.searchParams.append("query", searchQuery);
-      url.searchParams.append("client_id", accessKey);
-      url.searchParams.append("w", "400"); // Request smaller image
+      const response = await axios.get<UnsplashPhoto>(UNSPLASH_BASE_URL, {
+        params: {
+          query: searchQuery,
+          client_id: accessKey,
+        },
+      });
 
-      const response = await fetch(url.toString());
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          // Rate limited
-          console.error("Unsplash API rate limit exceeded");
-          return null;
-        }
-        if (response.status === 401) {
-          console.error("Unsplash API unauthorized");
-          return null;
-        }
-        if (attempt < MAX_RETRIES) {
-          // Retry on other errors
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          continue;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const photo = (await response.json()) as UnsplashPhoto;
+      const photo = response.data;
 
       if (!photo.urls?.regular && !photo.urls?.small) {
         console.error("Invalid Unsplash response: missing URLs");
@@ -101,7 +85,22 @@ async function fetchPhoto(
       });
 
       return { url: photoUrl, author };
-    } catch (error) {
+    } catch (err) {
+      const error = err as axios.AxiosError | Error;
+
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 429) {
+          // Rate limited
+          console.error("Unsplash API rate limit exceeded");
+          return null;
+        }
+        if (error.response?.status === 401) {
+          // Unauthorized
+          console.error("Unsplash API unauthorized");
+          return null;
+        }
+      }
+
       console.error(
         `Attempt ${attempt + 1} to fetch Unsplash photo failed:`,
         error
