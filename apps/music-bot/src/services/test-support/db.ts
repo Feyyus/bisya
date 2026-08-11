@@ -124,7 +124,7 @@ export function createFakeApi(): FakeApi {
 
 /** Bare-minimum Chat/User fixture creation, going straight to Prisma rather
  * than through `@bisya/bot-kit`'s `MemberService` - these tests only need
- * rows that satisfy `Game`/`GameRound`'s foreign keys, not membership
+ * rows that satisfy `MusicGame`/`MusicGameRound`'s foreign keys, not membership
  * bookkeeping, and staying off `MemberService` keeps this test-support
  * module decoupled from a package under active development elsewhere in
  * this repo. */
@@ -184,7 +184,7 @@ export async function seedLobbyWithTracks(
  * `sequence` one row at a time, and whenever the shuffle actually reordered
  * rounds (as opposed to leaving them in their original order), that loop
  * could transiently try to write a `sequence` value another not-yet-updated
- * row in the same game still held, tripping `GameRound`'s
+ * row in the same game still held, tripping `MusicGameRound`'s
  * `@@unique([gameId, sequence])` constraint. That's now fixed
  * (two-phase sequence assignment inside the transaction), but most fixture
  * setup here still pins `Math.random` to a value that keeps `shuffleArray`'s

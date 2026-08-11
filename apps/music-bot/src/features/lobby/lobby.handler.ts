@@ -1,4 +1,4 @@
-import { ScoringPreset } from "@bisya/db";
+import { MusicScoringPreset } from "@bisya/db";
 import { Composer } from "grammy";
 import type { InlineKeyboardButton } from "grammy/types";
 import { ActionCodec } from "../../codec/action.codec";
@@ -198,7 +198,7 @@ export class LobbyHandler extends Composer<BotContext> {
       case "preset": {
         const preset = rest[0];
         if (preset === "classic" || preset === "aggressive" || preset === "gentle") {
-          newConfig.scoringPreset = preset as ScoringPreset;
+          newConfig.scoringPreset = preset as MusicScoringPreset;
         }
         break;
       }

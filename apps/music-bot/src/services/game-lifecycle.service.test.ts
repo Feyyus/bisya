@@ -89,7 +89,7 @@ describe('GameLifecycleService', () => {
      * transitions it via `startGameFromLobby`'s transaction. Two concurrent
      * calls can both observe LOBBY before either commits, and both attempt
      * to flip the same DRAFT rounds to LIVE at sequences 0..n-1 -
-     * `GameRound`'s `@@unique([gameId, sequence])` constraint means the
+     * `MusicGameRound`'s `@@unique([gameId, sequence])` constraint means the
      * second transaction to reach a given row's UPDATE collides and the
      * whole transaction fails with a Postgres unique-violation, which
      * `start()`'s try/catch turns into a plain `'ERROR'`.

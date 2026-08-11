@@ -1,5 +1,5 @@
 import type { ITextService, MemberService } from '@bisya/bot-kit';
-import { GameStatus, RoundPhase } from '@bisya/db';
+import { MusicGameStatus, MusicRoundPhase } from '@bisya/db';
 import { Composer, Filter, NextFunction } from 'grammy';
 import { ActionCodec } from '../../codec/action.codec';
 import { BotContext } from '../../context';
@@ -195,7 +195,7 @@ export class UploadComposer extends Composer<BotContext> {
 
     const game = await this.gameRepository.getCurrentGameByChatId(chatId);
     const draftRound = game?.rounds.find(
-      (round) => Number(round.userId) === ctx.from!.id && round.phase === RoundPhase.DRAFT,
+      (round) => Number(round.userId) === ctx.from!.id && round.phase === MusicRoundPhase.DRAFT,
     );
     if (!game || !draftRound) {
       await ctx.reply(this.text.get('upload.trackNotFound'));
@@ -221,7 +221,7 @@ export class UploadComposer extends Composer<BotContext> {
   private async getOrCreateLobby(chatId: number): Promise<GameWithData | null> {
     const game = await this.gameRepository.getCurrentGameByChatId(chatId);
     if (game) {
-      return game.status === GameStatus.LOBBY ? game : null;
+      return game.status === MusicGameStatus.LOBBY ? game : null;
     }
     return this.gameRepository.createEmptyLobby(chatId);
   }

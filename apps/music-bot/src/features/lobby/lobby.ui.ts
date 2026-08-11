@@ -1,4 +1,4 @@
-import { GameStatus, User } from "@bisya/db";
+import { MusicGameStatus, User } from "@bisya/db";
 import type { InlineKeyboardButton } from "grammy/types";
 import type { GameConfigInput } from "../../repository/music-game.repository";
 
@@ -49,11 +49,11 @@ export class LobbyUi {
    * "Choose an option" string with no readiness info - this is the piece
    * that actually lets the organizer "see who's ready" per the ticket.
    */
-  lobbyText(status: GameStatus | null, readyPlayers: ReadyPlayer[]): string {
+  lobbyText(status: MusicGameStatus | null, readyPlayers: ReadyPlayer[]): string {
     const statusLine =
-      status === GameStatus.ACTIVE
+      status === MusicGameStatus.ACTIVE
         ? "🟢 A game is currently in progress."
-        : status === GameStatus.LOBBY
+        : status === MusicGameStatus.LOBBY
           ? "🟡 Lobby open - waiting for the organizer to start."
           : "⚪ No game yet - waiting for players to submit tracks.";
 
