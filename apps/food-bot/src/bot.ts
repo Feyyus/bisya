@@ -1,5 +1,7 @@
 import { Bot, Context, SessionFlavor } from "grammy";
 import { PrismaClient } from "@prisma/client";
+import { SocksProxyAgent } from "socks-proxy-agent";
+import nodeFetch from "node-fetch";
 import { TriggerService } from "./services/trigger.service";
 import { UnsplashService } from "./services/unsplash.service";
 
@@ -13,6 +15,21 @@ type BotContext = Context & SessionFlavor<SessionData>;
 const token = process.env.FOOD_BOT_TOKEN;
 if (!token) {
   throw new Error("FOOD_BOT_TOKEN environment variable is required");
+}
+
+// Node's built-in fetch (undici) doesn't support SOCKS5 agents, so when
+// Telegram is unreachable directly (e.g. blocked on the homelab network),
+// TELEGRAM_PROXY_HOST/PORT routes API calls through an SSH SOCKS5 tunnel
+// via node-fetch instead, which does support classic proxy agents.
+const proxyHost = process.env.TELEGRAM_PROXY_HOST;
+const proxyPort = process.env.TELEGRAM_PROXY_PORT ?? "1080";
+if (proxyHost) {
+  const proxyAgent = new SocksProxyAgent(`socks5://${proxyHost}:${proxyPort}`);
+  // node-fetch's Response isn't structurally identical to the global fetch
+  // Response type, but it's compatible enough for grammY's usage at runtime.
+  globalThis.fetch = ((url: string, init?: object) =>
+    nodeFetch(url, { ...init, agent: proxyAgent } as any)) as unknown as typeof fetch;
+  console.log(`Routing Telegram API calls through SOCKS5 proxy at ${proxyHost}:${proxyPort}`);
 }
 
 const bot = new Bot<BotContext>(token);
