@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "paths": {
+      "@bisya/db": ["../../packages/db/src/index.ts"],
+      "@bisya/wallet": ["../../packages/wallet/src/index.ts"],
+      "@bisya/scheduler": ["../../packages/scheduler/src/index.ts"],
+      "@bisya/bot-kit": ["../../packages/bot-kit/src/index.ts"]
+    }
+  },
+  "include": ["seed/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
