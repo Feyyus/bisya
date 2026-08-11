@@ -1,7 +1,6 @@
 import { Bot, Context, SessionFlavor } from "grammy";
 import { PrismaClient } from "@prisma/client";
 import { SocksProxyAgent } from "socks-proxy-agent";
-import nodeFetch from "node-fetch";
 import { TriggerService } from "./services/trigger.service";
 import { UnsplashService } from "./services/unsplash.service";
 
@@ -17,22 +16,23 @@ if (!token) {
   throw new Error("FOOD_BOT_TOKEN environment variable is required");
 }
 
-// Node's built-in fetch (undici) doesn't support SOCKS5 agents, so when
-// Telegram is unreachable directly (e.g. blocked on the homelab network),
-// TELEGRAM_PROXY_HOST/PORT routes API calls through an SSH SOCKS5 tunnel
-// via node-fetch instead, which does support classic proxy agents.
+// Telegram is unreachable directly from the homelab network. When
+// TELEGRAM_PROXY_HOST is set, route API calls through an SSH SOCKS5 tunnel
+// instead, per grammY's documented proxy setup (grammy.dev/advanced/proxy).
 const proxyHost = process.env.TELEGRAM_PROXY_HOST;
 const proxyPort = process.env.TELEGRAM_PROXY_PORT ?? "1080";
-if (proxyHost) {
-  const proxyAgent = new SocksProxyAgent(`socks5://${proxyHost}:${proxyPort}`);
-  // node-fetch's Response isn't structurally identical to the global fetch
-  // Response type, but it's compatible enough for grammY's usage at runtime.
-  globalThis.fetch = ((url: string, init?: object) =>
-    nodeFetch(url, { ...init, agent: proxyAgent } as any)) as unknown as typeof fetch;
+const socksAgent = proxyHost
+  ? new SocksProxyAgent(`socks5://${proxyHost}:${proxyPort}`)
+  : undefined;
+if (socksAgent) {
   console.log(`Routing Telegram API calls through SOCKS5 proxy at ${proxyHost}:${proxyPort}`);
 }
 
-const bot = new Bot<BotContext>(token);
+const bot = new Bot<BotContext>(token, {
+  client: socksAgent
+    ? { baseFetchConfig: { agent: socksAgent, compress: true } }
+    : undefined,
+});
 const prisma = new PrismaClient();
 
 // Cache for global food triggers (loaded at startup)
@@ -153,7 +153,14 @@ async function main() {
       // Continue without triggers rather than failing to start
     }
 
-    await bot.start();
+    console.log("Calling getMe() to validate connectivity...");
+    const me = await bot.api.getMe();
+    console.log(`getMe() succeeded: @${me.username}`);
+
+    console.log("Calling bot.start()...");
+    await bot.start({
+      onStart: (info) => console.log(`Polling started: @${info.username}`),
+    });
     console.log("Bot started successfully");
   } catch (error) {
     console.error("Failed to start bot:", error);
