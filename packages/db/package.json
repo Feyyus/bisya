@@ -7,6 +7,7 @@
     "types": "./dist/index.d.ts",
     "scripts": {
         "build": "tsc -b && prisma generate",
+        "prisma": "prisma",
         "db:generate": "prisma generate",
         "db:push": "prisma db push",
         "db:reset": "prisma db push --force-reset",

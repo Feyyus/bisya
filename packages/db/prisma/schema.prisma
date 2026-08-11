@@ -94,7 +94,7 @@ model GameRound {
   sequence  Int // Position in the game (1, 2, 3...)
   phase     RoundPhase @default(DRAFT)
 
-  // Timing — startedAt is set exactly when phase transitions DRAFT → LIVE
+  // Set to NOW() exactly when phase transitions DRAFT->LIVE. Used for scoring time-elapsed calculation.
   startedAt   DateTime?
   hintShownAt DateTime?
   endedAt     DateTime?

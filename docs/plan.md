@@ -30,15 +30,15 @@
 *Goal: Prisma schema in `packages/db` is clean, migrated, and exports a working client.*
 **Target: v0.1.0**
 
-- [ ] Copy current `schema.prisma` into `packages/db/prisma/schema.prisma`
-- [ ] **Fix B3:** Remove `Chat.activeGameId`, `Chat.activeGame` relation, and `Game.activeInChat` opposite relation. Write migration.
-- [ ] **Fix B1 (prerequisite):** Verify `GameRound.startedAt` column exists and is nullable `DateTime`. It does — no migration needed, but annotate it in schema comments: "Set to NOW() exactly when phase transitions DRAFT→LIVE. Used for scoring time-elapsed calculation."
-- [ ] **Rename cleanup:** Rename `Game.currentRound` → `Game.currentSequence` and `GameRound.roundIndex` → `GameRound.sequence` in schema. Write migration. Update all usages in repository (find: `currentRound`, `roundIndex` — grep across old codebase to catch all callsites before porting them).
-- [ ] **Consider table-prefix convention (see `CONTEXT.md`):** Food Bot's tables are prefixed with the bot name (`FoodTrigger`, `FoodChatConfig`), reserving unprefixed names for genuinely cross-bot tables (`User`, `Wallet`). Decide whether `Game`/`GameRound`/`Guess` should follow suit (e.g. `MusicGame`/...) before this schema is ever migrated against real data — cheap now, a real migration later. Not decided as part of Food Bot's release; pick this up when Music Bot's plan resumes.
-- [ ] **Add Wallet tables:** Add `Wallet` and `WalletTransaction` models per spec Section 4.1. Write migration.
-- [ ] **Enum rename:** Rename `GameStatus.COMPLETED` → `GameStatus.ENDED` for consistency with current service code that uses `'ENDED'` as a string literal in some places (or vice versa — pick one, fix both). Write migration.
+- [x] Copy current `schema.prisma` into `packages/db/prisma/schema.prisma`
+- [x] **Fix B3:** Remove `Chat.activeGameId`, `Chat.activeGame` relation, and `Game.activeInChat` opposite relation. Write migration. *(Schema already had no trace of these; since Game/GameRound/Guess/User/Chat/Wallet had never actually been migrated to Postgres before now — only Food Bot's tables were live — the single `add_music_and_wallet_models` migration below creates them directly in the corrected, bug-free shape.)*
+- [x] **Fix B1 (prerequisite):** Verify `GameRound.startedAt` column exists and is nullable `DateTime`. It does — no migration needed, but annotate it in schema comments: "Set to NOW() exactly when phase transitions DRAFT→LIVE. Used for scoring time-elapsed calculation."
+- [x] **Rename cleanup:** Rename `Game.currentRound` → `Game.currentSequence` and `GameRound.roundIndex` → `GameRound.sequence` in schema. Write migration. (Repository usages don't exist in this repo yet — tracked in Phase 5, which already lists this rename as a follow-up when the repository is ported.)
+- [x] **Consider table-prefix convention (see `CONTEXT.md`):** Decided — `Game`/`GameRound`/`Guess` are NOT renamed to a `Music`-prefixed form; they predate the convention and it applies going forward only. See `CONTEXT.md`.
+- [x] **Add Wallet tables:** Add `Wallet` and `WalletTransaction` models per spec Section 4.1. Write migration.
+- [x] **Enum rename:** Rename `GameStatus.COMPLETED` → `GameStatus.ENDED` for consistency with current service code that uses `'ENDED'` as a string literal in some places (or vice versa — pick one, fix both). Write migration.
 - [x] Validate the fresh Prisma schema with `prisma validate`
-- [ ] Connect the schema to a local Postgres instance when available and push it directly with `prisma db push`
+- [x] Connect the schema to a local Postgres instance when available and push it directly with `prisma db push` *(used `prisma migrate deploy` instead — the tracked-migration path, appropriate now that this ticket adds real migration history)*
 - [x] Run `pnpm --filter @bisya/db prisma generate` — confirm client generates without errors
 - [x] Write and export Prisma singleton client from `packages/db/src/client.ts`:
   ```typescript
