@@ -6,5 +6,9 @@
     "composite": true
   },
   "include": ["src"],
-  "references": [{ "path": "../../packages/db" }]
+  "references": [
+    { "path": "../../packages/db" },
+    { "path": "../../packages/scheduler" },
+    { "path": "../../packages/bot-kit" }
+  ]
 }
