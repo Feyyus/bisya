@@ -2,7 +2,7 @@
   "name": "@bisya/food-bot",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "seed:import": "tsx seed/import-triggers.ts"
   },

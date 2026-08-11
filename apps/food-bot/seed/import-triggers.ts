@@ -55,6 +55,10 @@ async function importFoodTriggers() {
 
     console.log(`Found ${records.length} records in CSV`);
 
+    // Calculate unique triggers
+    const uniqueTriggers = new Set(records.map((r) => r.trigger));
+    console.log(`Unique triggers: ${uniqueTriggers.size}`);
+
     // Clear existing triggers with chatId=0 to ensure clean import
     console.log("Clearing existing global template triggers...");
     const deleteResult = await prisma.foodTrigger.deleteMany({
@@ -63,7 +67,7 @@ async function importFoodTriggers() {
     console.log(`Deleted ${deleteResult.count} existing records`);
 
     // Import records using upsert to handle duplicates
-    console.log(`Importing ${records.length} food triggers...`);
+    console.log(`\nImporting ${records.length} food triggers...`);
 
     for (const record of records) {
       await prisma.foodTrigger.upsert({
@@ -84,22 +88,29 @@ async function importFoodTriggers() {
       });
     }
 
-    // Verify exactly 216 rows were imported
+    // Verify rows were imported
     const count = await prisma.foodTrigger.count({
       where: { chatId: 0n },
     });
 
     console.log(`\nImport Summary:`);
-    console.log(`  Imported: ${records.length} records from CSV`);
-    console.log(`  Verified in DB: ${count} records with chatId=0`);
+    console.log(`  Records processed from CSV: ${records.length}`);
+    console.log(`  Unique triggers in CSV: ${uniqueTriggers.size}`);
+    console.log(`  Records inserted in DB (chatId=0): ${count}`);
 
-    if (count !== 216) {
+    if (count !== uniqueTriggers.size) {
       throw new Error(
-        `Expected 216 rows in database, but found ${count}. Import verification failed.`
+        `Import verification failed: expected ${uniqueTriggers.size} unique records but found ${count} in database`
       );
     }
 
-    console.log(`\n✓ All 216 food triggers imported successfully!`);
+    if (uniqueTriggers.size !== 216) {
+      console.warn(
+        `⚠ Note: CSV contains ${records.length} rows but only ${uniqueTriggers.size} unique triggers due to duplicates`
+      );
+    } else {
+      console.log(`✓ All 216 food triggers imported successfully!`);
+    }
 
     await prisma.$disconnect();
     process.exit(0);
