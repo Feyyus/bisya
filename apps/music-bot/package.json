@@ -5,7 +5,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "tsc -b && node --test \"dist/**/*.test.js\""
   },
   "dependencies": {
     "@bisya/db": "workspace:*",
