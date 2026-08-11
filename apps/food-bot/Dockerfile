@@ -10,8 +10,8 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps ./apps
 COPY packages ./packages
 
-# Install dependencies
-RUN npm install -g pnpm && pnpm install --force
+# Install dependencies with npm (avoids pnpm lockfile platform issues)
+RUN npm ci
 
 # Build food-bot and its dependencies
 RUN pnpm build --filter @bisya/food-bot
@@ -30,8 +30,7 @@ COPY --from=builder /build/apps/food-bot/package.json ./
 COPY apps/food-bot/seed/food-triggers.csv ./seed/food-triggers.csv
 
 # Install runtime dependencies only (no devDependencies)
-RUN npm install -g pnpm && \
-    pnpm install --prod --force
+RUN npm ci --production
 
 # Health check (optional - bot doesn't expose HTTP, but we can check if process is running)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
