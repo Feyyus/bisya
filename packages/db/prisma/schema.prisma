@@ -12,13 +12,13 @@ datasource db {
 model User {
   id   BigInt  @id // Telegram ID
   tag  String? // Telegram tag
-  name String  // Telegram username
+  name String // Telegram username
 
-  guesses      Guess[]
-  roles        UserRole[]
-  gameRounds   GameRound[]
-  memberships  ChatMembership[]
-  wallet       Wallet?
+  guesses     MusicGuess[]
+  roles       UserRole[]
+  gameRounds  MusicGameRound[]
+  memberships ChatMembership[]
+  wallet      Wallet?
 }
 
 model ChatMembership {
@@ -63,36 +63,36 @@ model UserRole {
 model Chat {
   id          BigInt           @id // Telegram chat ID
   title       String
-  games       Game[]
+  games       MusicGame[]
   memberships ChatMembership[]
 }
 
-// ─── Games & Rounds ────────────────────────────────────────────
+// ─── Music Bot: Games & Rounds ──────────────────────────────────
 
-model Game {
-  id        Int        @id @default(autoincrement())
-  createdAt DateTime   @default(now())
-  status    GameStatus @default(LOBBY)
-  currentSequence Int  @default(0) // Which round sequence is currently active (1-based)
+model MusicGame {
+  id              Int             @id @default(autoincrement())
+  createdAt       DateTime        @default(now())
+  status          MusicGameStatus @default(LOBBY)
+  currentSequence Int             @default(0) // Which round sequence is currently active (1-based)
 
   // Game configuration
-  hintDelaySec    Int           @default(30)
-  autoAdvance     Boolean       @default(false)
-  advanceDelaySec Int           @default(10)
-  allowSelfGuess  Boolean       @default(false)
-  shuffle         Boolean       @default(true)
-  scoringPreset   ScoringPreset @default(classic)
+  hintDelaySec    Int                @default(30)
+  autoAdvance     Boolean            @default(false)
+  advanceDelaySec Int                @default(10)
+  allowSelfGuess  Boolean            @default(false)
+  shuffle         Boolean            @default(true)
+  scoringPreset   MusicScoringPreset @default(classic)
 
-  rounds GameRound[]
+  rounds MusicGameRound[]
   chatId BigInt
-  chat   Chat      @relation(fields: [chatId], references: [id])
+  chat   Chat             @relation(fields: [chatId], references: [id])
 }
 
-model GameRound {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+model MusicGameRound {
+  id        Int             @id @default(autoincrement())
+  createdAt DateTime        @default(now())
   sequence  Int // Position in the game (1, 2, 3...)
-  phase     RoundPhase @default(DRAFT)
+  phase     MusicRoundPhase @default(DRAFT)
 
   // Set to NOW() exactly when phase transitions DRAFT->LIVE. Used for scoring time-elapsed calculation.
   startedAt   DateTime?
@@ -100,33 +100,33 @@ model GameRound {
   endedAt     DateTime?
 
   // Track data (uploaded by user)
-  musicFileId   String  // Telegram file ID of the music
+  musicFileId   String // Telegram file ID of the music
   hintChatId    BigInt? // Telegram chat ID where hint was sent
   hintMessageId BigInt? // Message ID of the hint
   infoMessageId BigInt? // Message ID of the info message
 
   // Relations
-  user   User   @relation(fields: [userId], references: [id])
-  userId BigInt
-  game   Game   @relation(fields: [gameId], references: [id])
-  gameId Int
-  guesses Guess[]
+  user    User         @relation(fields: [userId], references: [id])
+  userId  BigInt
+  game    MusicGame    @relation(fields: [gameId], references: [id])
+  gameId  Int
+  guesses MusicGuess[]
 
   @@unique([gameId, sequence])
   @@unique([gameId, userId]) // One submission per user per game
 }
 
-model Guess {
+model MusicGuess {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
   guessedId BigInt // The user they guessed (can be correct or incorrect)
-  points    Int    // Denormalized: points calculated at guess time, not recalculated on scoring preset change
+  points    Int // Denormalized: points calculated at guess time, not recalculated on scoring preset change
 
   // Relations
-  round   GameRound @relation(fields: [roundId], references: [id])
+  round   MusicGameRound @relation(fields: [roundId], references: [id])
   roundId Int
-  user    User      @relation(fields: [userId], references: [id])
+  user    User           @relation(fields: [userId], references: [id])
   userId  BigInt
 
   @@unique([roundId, userId])
@@ -140,7 +140,7 @@ model Wallet {
   balance   Int      @default(0) // Cached sum; authoritative value is SUM(WalletTransaction.amount)
   updatedAt DateTime @updatedAt
 
-  user         User               @relation(fields: [userId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
   transactions WalletTransaction[]
 }
 
@@ -148,9 +148,9 @@ model WalletTransaction {
   id              Int      @id @default(autoincrement())
   createdAt       DateTime @default(now())
   walletId        Int
-  amount          Int      // Positive = credit, negative = debit
-  reason          String   // e.g. "purchase:stars", "spend:extra_round", "refund"
-  relatedEntityId String?  // e.g. provider transaction ID, game ID
+  amount          Int // Positive = credit, negative = debit
+  reason          String // e.g. "purchase:stars", "spend:extra_round", "refund"
+  relatedEntityId String? // e.g. provider transaction ID, game ID
   idempotencyKey  String   @unique // DB-enforced uniqueness — last line of defense against double-crediting
 
   wallet Wallet @relation(fields: [walletId], references: [id])
@@ -158,19 +158,19 @@ model WalletTransaction {
 
 // ─── Enums ─────────────────────────────────────────────────────
 
-enum GameStatus {
+enum MusicGameStatus {
   LOBBY
   ACTIVE
   ENDED
 }
 
-enum RoundPhase {
+enum MusicRoundPhase {
   DRAFT
   LIVE
   COMPLETED
 }
 
-enum ScoringPreset {
+enum MusicScoringPreset {
   classic
   aggressive
   gentle
@@ -180,9 +180,9 @@ enum ScoringPreset {
 
 model FoodTrigger {
   id          Int      @id @default(autoincrement())
-  chatId      BigInt   // 0 = global template
+  chatId      BigInt // 0 = global template
   trigger     String
-  searchQuery String   // both the Unsplash search term and the display/group identity
+  searchQuery String // both the Unsplash search term and the display/group identity
   createdAt   DateTime @default(now())
 
   @@unique([trigger, chatId])
@@ -190,6 +190,6 @@ model FoodTrigger {
 
 model FoodChatConfig {
   chatId         BigInt   @id
-  responseChance Int      @default(100)   // now persisted — fixes the old in-memory-only bug
+  responseChance Int      @default(100) // now persisted — fixes the old in-memory-only bug
   seededAt       DateTime @default(now())
 }
