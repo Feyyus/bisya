@@ -14,7 +14,8 @@
     "grammy": "^1.30.0",
     "@bisya/db": "workspace:*",
     "@bisya/bot-kit": "workspace:*",
-    "@prisma/client": "^6.5.0"
+    "@prisma/client": "^6.5.0",
+    "snowball": "^0.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

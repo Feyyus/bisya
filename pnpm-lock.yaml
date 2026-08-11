@@ -29,6 +29,9 @@ importers:
       grammy:
         specifier: ^1.30.0
         version: 1.45.1
+      snowball:
+        specifier: ^0.3.1
+        version: 0.3.1
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -436,6 +439,10 @@ packages:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
 
+  snowball@0.3.1:
+    resolution: {integrity: sha512-mCgdHVUCYV2W67Wm75phNERUQ01a6k1Rbjm3l2wF3QWVaxLxf2Iu3Jm3nWlZW3S6g0SdQcn9AEsnhgBoplw+3g==}
+    engines: {node: '>=0'}
+
   tinyexec@1.2.4:
     resolution: {integrity: sha512-SHf/r48b7vOrjve9PxJo3MN5v5yuyjHvdUcrQffT3WXMUfnGmHDVbC4k3sHJaJTgZCwpUplIaAo5ANtMyp3YHg==}
     engines: {node: '>=18'}
@@ -741,6 +748,8 @@ snapshots:
       destr: 2.0.5
 
   readdirp@4.1.2: {}
+
+  snowball@0.3.1: {}
 
   tinyexec@1.2.4: {}
 
